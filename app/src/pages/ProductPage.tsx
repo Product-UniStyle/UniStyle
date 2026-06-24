@@ -1,7 +1,65 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Minus, Plus, Heart, Eye, Flame, Shuffle, HelpCircle, Truck, Share2, Clock, Check, Star, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useProduct, useRelatedProducts } from '@/hooks/useProducts';
+import { Heart, HelpCircle, Truck, Share2, Check, Star, ChevronLeft, ChevronRight, ShoppingBag, Lock, RefreshCw, Search } from 'lucide-react';
+import { useProduct, useProducts } from '@/hooks/useProducts';
+import type { Product } from '@/data/products';
+
+function CollectionRow({ title, products }: { title: string; products: Product[] }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  if (products.length === 0) return null;
+
+  const scrollNext = () => {
+    scrollRef.current?.scrollBy({ left: 280, behavior: 'smooth' });
+  };
+
+  return (
+    <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-10">
+      <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-6">{title}</h2>
+      <div className="relative">
+        <div ref={scrollRef} className="flex gap-6 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {products.map(p => <CollectionCard key={p.id} product={p} />)}
+        </div>
+        {products.length > 4 && (
+          <button
+            onClick={scrollNext}
+            className="hidden md:flex absolute right-0 top-1/3 -translate-y-1/2 w-9 h-9 rounded-full bg-white shadow items-center justify-center"
+            aria-label="Show more"
+          >
+            <ChevronRight size={18} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CollectionCard({ product }: { product: Product }) {
+  const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
+  const inWishlist = isInWishlist(product.id);
+
+  return (
+    <div className="shrink-0 w-[calc(50%-12px)] md:w-[calc(25%-18px)]">
+      <div className="relative bg-white overflow-hidden">
+        <Link to={`/product/${product.slug}`}>
+          <img src={product.images[0]} alt={product.name} className="w-full aspect-square object-cover" />
+        </Link>
+        <button
+          onClick={() => {
+            if (inWishlist) { removeFromWishlist(product.id); showToast('Removed from wishlist'); }
+            else { addToWishlist(product); showToast('Added to wishlist'); }
+          }}
+          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white flex items-center justify-center shadow"
+        >
+          <Heart size={14} fill={inWishlist ? 'currentColor' : 'none'} />
+        </button>
+      </div>
+      <div className="mt-3">
+        <Link to={`/product/${product.slug}`} className="text-sm font-medium text-[#1A1A1A] hover:underline">{product.name}</Link>
+      </div>
+    </div>
+  );
+}
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { showToast } from '@/components/ToastContainer';
@@ -21,9 +79,15 @@ export function ProductPage() {
   const [mainImage, setMainImage] = useState(0);
   const [activeTab, setActiveTab] = useState('description');
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
-  const [termsAgreed, setTermsAgreed] = useState(false);
   const [zoomOpen, setZoomOpen] = useState(false);
-  const related = useRelatedProducts(product?.id, 4);
+  const { products: allProducts } = useProducts();
+
+  const completeCollection = product
+    ? allProducts.filter(p => p.id !== product.id && p.university && p.university === product.university).slice(0, 8)
+    : [];
+  const youMayAlsoLike = product
+    ? allProducts.filter(p => p.id !== product.id).slice(0, 4)
+    : [];
 
   useEffect(() => {
     if (product) {
@@ -93,11 +157,17 @@ export function ProductPage() {
   return (
     <div className="mt-[72px]" ref={sectionRef}>
       {/* Breadcrumb */}
-      <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-6">
+      <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-4">
         <nav className="text-sm text-[#666]">
           <Link to="/" className="hover:underline">Home</Link>
+          {product.university && (
+            <>
+              <span className="mx-2">/</span>
+              <Link to={`/shop?university=${encodeURIComponent(product.university)}`} className="hover:underline">{product.university}</Link>
+            </>
+          )}
           <span className="mx-2">/</span>
-          <Link to="/shop" className="hover:underline">{product.category}</Link>
+          <Link to={`/shop?category=${encodeURIComponent(product.category)}`} className="hover:underline">{product.category}</Link>
           <span className="mx-2">/</span>
           <span className="text-[#1A1A1A]">{product.name}</span>
         </nav>
@@ -105,14 +175,17 @@ export function ProductPage() {
 
       {/* Product Main */}
       <div className="max-w-[1440px] mx-auto px-6 lg:px-12 pb-16">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Images */}
           <div>
-            <div className="relative bg-[#F5F5F5] overflow-hidden mb-4 cursor-zoom-in" onClick={() => setZoomOpen(true)}>
-              <img src={product.images[mainImage]} alt={product.name} className="w-full aspect-[3/4] object-cover" />
+            <div className="relative bg-[#F5F5F5] overflow-hidden mb-4 cursor-zoom-in max-h-[55vh] lg:max-h-[60vh]" onClick={() => setZoomOpen(true)}>
+              <img src={product.images[mainImage]} alt={product.name} className="w-full h-[55vh] lg:h-[60vh] object-contain p-6" />
               {product.badge && (
-                <span className="absolute top-4 left-4 bg-[#1A1A1A] text-white text-xs font-medium px-3 py-1.5">{product.badge}</span>
+                <span className="absolute top-4 right-4 bg-[#1A1A1A] text-white text-xs font-medium px-3 py-1.5">{product.badge}</span>
               )}
+              <span className="absolute top-4 left-4 w-9 h-9 rounded-full bg-white flex items-center justify-center shadow">
+                <Search size={16} />
+              </span>
             </div>
             <div className="grid grid-cols-4 gap-2">
               {product.images.map((img, i) => (
@@ -140,6 +213,18 @@ export function ProductPage() {
                 <span className="text-2xl font-bold">${product.price.toFixed(2)}</span>
               )}
             </div>
+            {/* Rating */}
+            {(product.rating || product.reviewCount) && (
+              <div className="flex items-center gap-2 mb-4">
+                <div className="flex">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} size={16} fill={i < Math.round(product.rating || 0) ? '#1A1A1A' : '#E5E5E5'} strokeWidth={0} />
+                  ))}
+                </div>
+                <span className="text-sm text-[#666]">{(product.rating || 0).toFixed(1)} ({product.reviewCount || 0} Reviews)</span>
+              </div>
+            )}
+
             <p className="text-sm text-[#666] leading-relaxed mb-4">{product.description}</p>
 
             {/* Stock */}
@@ -149,10 +234,10 @@ export function ProductPage() {
             </div>
 
             {/* Social proof */}
-            <div className="flex items-center gap-4 text-sm text-[#666] mb-4">
+            {/* <div className="flex items-center gap-4 text-sm text-[#666] mb-4">
               <span className="flex items-center gap-1"><Eye size={14} /> 35 people are viewing this right now</span>
               <span className="flex items-center gap-1"><Flame size={14} /> 33 sold in last 10 hours</span>
-            </div>
+            </div> */}
 
             {/* Countdown */}
             {product.countdownEnd && (
@@ -210,70 +295,57 @@ export function ProductPage() {
               </div>
             )}
 
-            {/* Quantity */}
-            <div className="flex items-center gap-4 mb-6">
-              <div className="flex items-center border border-[#E5E5E5]">
-                <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="px-3 py-3 hover:bg-[#F5F5F5]"><Minus size={14} /></button>
-                <span className="w-12 text-center text-sm font-medium">{quantity}</span>
-                <button onClick={() => setQuantity(quantity + 1)} className="px-3 py-3 hover:bg-[#F5F5F5]"><Plus size={14} /></button>
-              </div>
-              <button
-                onClick={handleAddToCart}
-                className="flex-1 bg-[#1A1A1A] text-white text-sm font-semibold uppercase tracking-wider py-3.5 hover:bg-[#333] transition-colors"
-              >
-                Add to Cart
-              </button>
-              <button
-                onClick={() => {
-                  if (inWishlist) { removeFromWishlist(product.id); showToast('Removed from wishlist'); }
-                  else { addToWishlist(product); showToast('Added to wishlist'); }
-                }}
-                className={`w-12 h-12 flex items-center justify-center border transition-colors ${inWishlist ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]' : 'bg-white text-[#1A1A1A] border-[#E5E5E5] hover:border-[#1A1A1A]'}`}
-              >
-                <Heart size={18} fill={inWishlist ? 'currentColor' : 'none'} />
-              </button>
-            </div>
-
-            {/* Terms */}
-            <label className="flex items-center gap-2 text-sm text-[#666] mb-4 cursor-pointer">
-              <input type="checkbox" checked={termsAgreed} onChange={e => setTermsAgreed(e.target.checked)} className="accent-[#1A1A1A]" />
-              I agree with the <Link to="/" className="underline">terms and conditions</Link>
-            </label>
+            {/* Add to Cart */}
+            <button
+              onClick={handleAddToCart}
+              className="w-full flex items-center justify-center gap-2 bg-[#1A1A1A] text-white text-sm font-semibold uppercase tracking-wider py-3.5 hover:bg-[#333] transition-colors mb-3"
+            >
+              <ShoppingBag size={16} /> Add to Cart
+            </button>
 
             {/* Buy Now */}
             <button
               onClick={handleBuyNow}
               className="w-full bg-white text-[#1A1A1A] border border-[#1A1A1A] text-sm font-semibold uppercase tracking-wider py-3.5 hover:bg-[#1A1A1A] hover:text-white transition-colors mb-6"
             >
-              Buy It Now
+              Buy Now
             </button>
 
-            {/* Action links */}
-            <div className="flex items-center justify-between text-sm text-[#666] mb-6 pb-6 border-b border-[#E5E5E5]">
-              <button className="flex items-center gap-1.5 hover:text-[#1A1A1A]"><Shuffle size={14} /> Compare</button>
-              <button className="flex items-center gap-1.5 hover:text-[#1A1A1A]"><HelpCircle size={14} /> Ask a question</button>
-              <button className="flex items-center gap-1.5 hover:text-[#1A1A1A]"><Truck size={14} /> Delivery & Return</button>
-              <button className="flex items-center gap-1.5 hover:text-[#1A1A1A]"><Share2 size={14} /> Share</button>
+            {/* Wishlist / Share */}
+            <div className="flex items-center justify-between text-sm text-[#666] mb-8">
+              <button
+                onClick={() => {
+                  if (inWishlist) { removeFromWishlist(product.id); showToast('Removed from wishlist'); }
+                  else { addToWishlist(product); showToast('Added to wishlist'); }
+                }}
+                className="flex items-center gap-1.5 hover:text-[#1A1A1A]"
+              >
+                <Heart size={16} fill={inWishlist ? 'currentColor' : 'none'} /> {inWishlist ? 'In Wishlist' : 'Add to Wishlist'}
+              </button>
+              <button className="flex items-center gap-1.5 hover:text-[#1A1A1A]">
+                <Share2 size={16} /> Share
+              </button>
             </div>
 
-            {/* Delivery info */}
-            <div className="space-y-2 text-sm text-[#666] mb-6">
-              <p className="flex items-center gap-2"><Clock size={14} /> Order in the next <strong className="text-[#1A1A1A]">5 hours 14 minutes</strong> to get it between <strong className="text-[#1A1A1A]">Wednesday, Jun 24</strong> and <strong className="text-[#1A1A1A]">Sunday, Jun 28</strong></p>
-              <p className="flex items-center gap-2"><Truck size={14} /> <strong className="text-[#1A1A1A]">Pickup available</strong> at Alaska. Usually ready in 24 hours.</p>
-            </div>
-
-            {/* Guaranteed */}
-            <p className="text-xs font-medium uppercase tracking-wider text-[#999] mb-3">Guaranteed Checkout</p>
-            <div className="flex items-center gap-2">
-              {['Visa', 'Mastercard', 'Amex', 'PayPal'].map(method => (
-                <div key={method} className="bg-[#F5F5F5] px-3 py-1.5 text-xs font-medium text-[#666]">{method}</div>
+            {/* Trust badges */}
+            <div className="grid grid-cols-4 gap-2 border border-[#E5E5E5] rounded-lg p-4 bg-[#FAFAFA]">
+              {[
+                { icon: Check, label: 'Official University Merchandise' },
+                { icon: Lock, label: 'Secure Checkout' },
+                { icon: Truck, label: 'Fast UAE Delivery' },
+                { icon: RefreshCw, label: 'Easy Exchanges' },
+              ].map(({ icon: Icon, label }) => (
+                <div key={label} className="flex flex-col items-center text-center gap-1.5">
+                  <Icon size={20} className="text-[#1A1A1A]" />
+                  <span className="text-[11px] text-[#666] leading-tight">{label}</span>
+                </div>
               ))}
             </div>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="mt-16 border-t border-[#E5E5E5] pt-8">
+        {/* <div className="mt-16 border-t border-[#E5E5E5] pt-8">
           <div className="flex items-center gap-8 mb-8 border-b border-[#E5E5E5]">
             {['description', 'reviews', 'shipping', 'return'].map(tab => (
               <button
@@ -315,41 +387,15 @@ export function ProductPage() {
               </div>
             )}
           </div>
-        </div>
+        </div> */}
       </div>
 
-      {/* Related Products */}
-      <div className="bg-[#F5F5F5] py-16">
-        <div className="max-w-[1440px] mx-auto px-6 lg:px-12">
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-8">Related Products</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {related.map(p => (
-              <div key={p.id}>
-                <div className="group">
-                  <div className="relative bg-white overflow-hidden">
-                    <Link to={`/product/${p.slug}`}>
-                      <img src={p.images[0]} alt={p.name} className="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-500" />
-                    </Link>
-                    {p.badge && <span className="absolute top-3 left-3 bg-[#1A1A1A] text-white text-[11px] font-medium px-2 py-1">{p.badge}</span>}
-                  </div>
-                  <div className="mt-3">
-                    <Link to={`/product/${p.slug}`} className="text-sm font-medium text-[#1A1A1A] hover:underline">{p.name}</Link>
-                    <div className="flex items-center gap-2 mt-1">
-                      {p.salePrice ? (
-                        <>
-                          <span className="text-sm font-semibold">${p.salePrice.toFixed(2)}</span>
-                          <span className="text-sm text-[#999] line-through">${p.price.toFixed(2)}</span>
-                        </>
-                      ) : (
-                        <span className="text-sm font-semibold">${p.price.toFixed(2)}</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* Complete the Collection */}
+      <CollectionRow title="Complete the Collection" products={completeCollection} />
+
+      {/* You May Also Like */}
+      <div className="bg-[#F5F5F5]">
+        <CollectionRow title="You May Also Like" products={youMayAlsoLike} />
       </div>
 
       {/* Zoom Modal */}

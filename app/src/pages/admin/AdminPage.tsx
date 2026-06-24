@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
-import { Plus, Pencil, Trash2, Upload, Download, LogOut, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Download, LogOut, Search, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +23,7 @@ export function AdminPage() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<BackendProduct[]>([]);
   const [search, setSearch] = useState('');
+  const [featuredOnly, setFeaturedOnly] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -35,7 +36,11 @@ export function AdminPage() {
     setLoading(true);
     setError('');
     try {
-      const { products } = await api.getProducts({ search: search || undefined, limit: 100 });
+      const { products } = await api.getProducts({
+        search: search || undefined,
+        featured: featuredOnly ? true : undefined,
+        limit: 100,
+      });
       setProducts(products);
     } catch (err) {
       if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
@@ -62,10 +67,17 @@ export function AdminPage() {
     const t = setTimeout(load, 300);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]);
+  }, [search, featuredOnly]);
 
   const openCreate = () => { setEditing(null); setFormOpen(true); };
   const openEdit = (p: BackendProduct) => { setEditing(p); setFormOpen(true); };
+
+  const toggleFeatured = async (p: BackendProduct) => {
+    await api.updateProduct(p._id, { featured: !p.featured });
+    await load();
+  };
+
+  const featuredCount = products.filter((p) => p.featured).length;
 
   const handleSave = async (data: AdminProductInput) => {
     if (editing) {
@@ -137,6 +149,13 @@ export function AdminPage() {
             />
           </div>
           <div className="flex gap-2">
+            <Button
+              variant={featuredOnly ? 'default' : 'outline'}
+              className={featuredOnly ? 'bg-[#1A1A1A] hover:bg-[#333]' : undefined}
+              onClick={() => setFeaturedOnly((v) => !v)}
+            >
+              <Star className="size-4 mr-1.5" /> Featured only
+            </Button>
             <Button variant="outline" onClick={handleExport} disabled={products.length === 0}>
               <Download className="size-4 mr-1.5" /> Export
             </Button>
@@ -151,6 +170,12 @@ export function AdminPage() {
 
         {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
 
+        {featuredCount > 3 && (
+          <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 mb-4">
+            {featuredCount} products are marked Featured, but the homepage only shows 3. Turn off the extras below so you know exactly which 3 will appear.
+          </p>
+        )}
+
         <div className="bg-white border border-[#E5E5E5] rounded-lg overflow-hidden">
           <Table>
             <TableHeader>
@@ -160,14 +185,15 @@ export function AdminPage() {
                 <TableHead>Price</TableHead>
                 <TableHead>Stock</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Featured</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-10 text-[#999]">Loading...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-10 text-[#999]">Loading...</TableCell></TableRow>
               ) : products.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-10 text-[#999]">No products found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-10 text-[#999]">No products found</TableCell></TableRow>
               ) : (
                 products.map((p) => (
                   <TableRow key={p._id}>
@@ -199,6 +225,16 @@ export function AdminPage() {
                       ) : (
                         <Badge variant="destructive">Out of stock</Badge>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => toggleFeatured(p)}
+                        title={p.featured ? 'Remove from Featured' : 'Mark as Featured'}
+                      >
+                        <Star className={`size-4 ${p.featured ? 'fill-amber-400 text-amber-500' : 'text-[#999]'}`} />
+                      </Button>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="icon" onClick={() => openEdit(p)}>

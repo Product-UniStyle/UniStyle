@@ -9,6 +9,7 @@ import { ToastContainer } from '@/components/ToastContainer';
 import { CookieConsent } from '@/components/CookieConsent';
 import { BackToTop } from '@/components/BackToTop';
 import { HomePage } from '@/pages/HomePage';
+import { HomePagePreview } from '@/pages/HomePagePreview';
 import { ShopPage } from '@/pages/ShopPage';
 import { ProductPage } from '@/pages/ProductPage';
 import { BlogPage } from '@/pages/BlogPage';
@@ -29,7 +30,8 @@ function AppLayout() {
       {!isAdmin && <Header />}
       <main className={isAdmin ? undefined : 'flex-1'}>
         <Routes>
-          <Route path="/" element={<HomePage />} />
+          <Route path="/" element={<HomePagePreview />} />
+          <Route path="/preview-home" element={<HomePage />} />
           <Route path="/shop" element={<ShopPage />} />
           <Route path="/product/:slug" element={<ProductPage />} />
           <Route path="/blog" element={<BlogPage />} />

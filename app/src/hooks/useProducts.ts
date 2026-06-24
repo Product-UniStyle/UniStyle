@@ -3,20 +3,21 @@ import { api } from '@/lib/api';
 import { adaptProduct } from '@/lib/productAdapter';
 import type { Product } from '@/data/products';
 
-export function useProducts() {
+export function useProducts(params: { featured?: boolean } = {}) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const { featured } = params;
 
   useEffect(() => {
     let active = true;
     setLoading(true);
-    api.getProducts({ limit: 100 })
+    api.getProducts({ limit: 100, featured })
       .then(({ products: backendProducts }) => {
         if (active) setProducts(backendProducts.map(adaptProduct));
       })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, []);
+  }, [featured]);
 
   return { products, loading };
 }

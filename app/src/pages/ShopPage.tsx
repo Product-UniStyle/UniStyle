@@ -275,7 +275,7 @@ export function ShopPage() {
               <input
                 type="range"
                 min={0}
-                max={200}
+                max={2000}
                 value={priceRange[1]}
                 onChange={e => setPriceRange([0, parseInt(e.target.value)])}
                 className="w-full accent-[#1A1A1A]"

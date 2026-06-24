@@ -15,8 +15,10 @@ import { errorHandler, notFound } from './middleware/errorHandler.js';
 
 const app = express();
 
+const allowedOrigins = [process.env.CLIENT_URL, 'http://localhost:3000'];
+
 app.use(helmet());
-app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(morgan('dev'));
 
 // Stripe webhook needs the RAW body (not JSON-parsed) to verify the signature,

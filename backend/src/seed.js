@@ -1,8 +1,9 @@
-import { PrismaClient } from '@prisma/client';
+import 'dotenv/config';
+import { connectDb } from './lib/db.js';
+import Product from './models/Product.js';
+import mongoose from 'mongoose';
 
-const prisma = new PrismaClient();
-
-// Mirrors src/data/products.ts from the frontend so the DB matches what's already on the site.
+// Mirrors app/src/data/products.ts so the DB matches what's already on the site.
 // Prices are converted from dollars to cents for storage.
 const products = [
   {
@@ -12,10 +13,17 @@ const products = [
     price: 7200,
     category: 'Bags',
     images: ['/product-bag-black.jpg'],
-    colors: ['Pink', 'Black', 'Brown', 'Green'],
+    colors: [
+      { name: 'Pink', hex: '#E8B4B8' },
+      { name: 'Black', hex: '#1A1A1A' },
+      { name: 'Brown', hex: '#8B6914' },
+      { name: 'Green', hex: '#2D5A3D' },
+    ],
     sizes: [],
     stock: 25,
     featured: false,
+    rating: 4.5,
+    reviewCount: 12,
   },
   {
     slug: 'fringed-wool-blend-turtleneck-top',
@@ -25,10 +33,16 @@ const products = [
     compareAt: 7500,
     category: 'Women',
     images: ['/product-turtleneck.jpg'],
-    colors: ['Cream', 'Charcoal'],
+    colors: [
+      { name: 'Cream', hex: '#F5F0E8' },
+      { name: 'Charcoal', hex: '#4A4A4A' },
+    ],
     sizes: ['S', 'M', 'L'],
     stock: 30,
     featured: true,
+    rating: 5,
+    reviewCount: 8,
+    badge: '-20%',
   },
   {
     slug: 'triomphe-cat-eye-acetate-sunglasses',
@@ -37,10 +51,15 @@ const products = [
     price: 6000,
     category: 'Glases',
     images: ['/product-sunglasses.jpg'],
-    colors: ['Black', 'Tortoise'],
+    colors: [
+      { name: 'Black', hex: '#1A1A1A' },
+      { name: 'Tortoise', hex: '#6B4423' },
+    ],
     sizes: [],
     stock: 40,
     featured: false,
+    rating: 4.8,
+    reviewCount: 24,
   },
   {
     slug: 'althea-belted-cow-hair-trench-coat',
@@ -50,23 +69,34 @@ const products = [
     compareAt: 15000,
     category: 'Women',
     images: ['/product-trench.jpg'],
-    colors: ['Burgundy'],
+    colors: [{ name: 'Burgundy', hex: '#6B1A2A' }],
     sizes: ['S', 'M', 'L', 'XL'],
     stock: 15,
     featured: true,
+    rating: 4.5,
+    reviewCount: 6,
+    badge: '-46%',
   },
   {
     slug: 'wool-coat',
     name: 'Wool Coat',
-    description: 'A refined wool coat with clean tailoring, designed as a versatile layer for cold-weather dressing.',
+    description: 'Curabitur egestas malesuada volutpat. Nunc vel vestibulum odio, ac pellentesque lacus. Pellentesque dapibus nunc nec est imperdiet, a malesuada sem rutrum.',
     price: 8000,
     compareAt: 11000,
     category: 'Women',
     images: ['/product-wool-coat.jpg'],
-    colors: ['Navy', 'Purple', 'Yellow'],
+    colors: [
+      { name: 'Navy', hex: '#1E3A5F' },
+      { name: 'Purple', hex: '#6B4C7F' },
+      { name: 'Yellow', hex: '#D4A843' },
+    ],
     sizes: ['M', 'L', 'XL'],
     stock: 20,
     featured: true,
+    rating: 5,
+    reviewCount: 4,
+    badge: '-27%',
+    countdownEnd: new Date('2026-12-31T23:59:59'),
   },
   {
     slug: 'luxury-touch-polo',
@@ -75,10 +105,15 @@ const products = [
     price: 5000,
     category: 'Men',
     images: ['/product-polo.jpg'],
-    colors: ['Navy', 'White'],
+    colors: [
+      { name: 'Navy', hex: '#1E3A5F' },
+      { name: 'White', hex: '#FFFFFF' },
+    ],
     sizes: ['M', 'L', 'XL', 'XXL'],
     stock: 35,
     featured: false,
+    rating: 4.2,
+    reviewCount: 15,
   },
   {
     slug: 'jacquard-chore-coat',
@@ -87,10 +122,12 @@ const products = [
     price: 7000,
     category: 'Men',
     images: ['/product-chore-coat.jpg'],
-    colors: ['Navy'],
+    colors: [{ name: 'Navy', hex: '#1E3A5F' }],
     sizes: ['M', 'L', 'XL'],
     stock: 18,
     featured: false,
+    rating: 4.7,
+    reviewCount: 9,
   },
   {
     slug: 'heritage-cotton-slub-henley-t-shirt',
@@ -100,10 +137,16 @@ const products = [
     compareAt: 15000,
     category: 'Men',
     images: ['/product-henley.jpg'],
-    colors: ['Indigo', 'Olive'],
+    colors: [
+      { name: 'Indigo', hex: '#3B5F8A' },
+      { name: 'Olive', hex: '#5B6B3A' },
+    ],
     sizes: ['M', 'L', 'XL'],
     stock: 22,
     featured: false,
+    rating: 4.3,
+    reviewCount: 11,
+    badge: '-20%',
   },
   {
     slug: 'le-teckel-medium-nubuck-shoulder-bag',
@@ -113,10 +156,17 @@ const products = [
     compareAt: 9600,
     category: 'Bags',
     images: ['/product-red-bag.jpg'],
-    colors: ['Red', 'Black', 'Tan'],
+    colors: [
+      { name: 'Red', hex: '#B83A3A' },
+      { name: 'Black', hex: '#1A1A1A' },
+      { name: 'Tan', hex: '#C4956A' },
+    ],
     sizes: [],
     stock: 12,
     featured: true,
+    rating: 4.9,
+    reviewCount: 7,
+    badge: '-37%',
   },
   {
     slug: 'apolline-patent-leather-slingback-pumps',
@@ -125,10 +175,15 @@ const products = [
     price: 8500,
     category: 'Shoes',
     images: ['/product-shoes.jpg'],
-    colors: ['Nude', 'Black'],
+    colors: [
+      { name: 'Nude', hex: '#D4A996' },
+      { name: 'Black', hex: '#1A1A1A' },
+    ],
     sizes: ['36', '37', '38', '39', '40'],
     stock: 28,
     featured: false,
+    rating: 4.6,
+    reviewCount: 18,
   },
   {
     slug: 'ivy-aviator-style-gold-tone-sunglasses',
@@ -137,10 +192,15 @@ const products = [
     price: 5500,
     category: 'Glases',
     images: ['/product-sunglasses.jpg'],
-    colors: ['Gold', 'Silver'],
+    colors: [
+      { name: 'Gold', hex: '#D4A843' },
+      { name: 'Silver', hex: '#C0C0C0' },
+    ],
     sizes: [],
     stock: 33,
     featured: false,
+    rating: 4.4,
+    reviewCount: 13,
   },
   {
     slug: 'bow-tie-105-cutout-leather-pumps',
@@ -149,21 +209,26 @@ const products = [
     price: 6500,
     category: 'Shoes',
     images: ['/product-shoes.jpg'],
-    colors: ['Black'],
+    colors: [{ name: 'Black', hex: '#1A1A1A' }],
     sizes: ['37', '38', '39', '40'],
     stock: 0,
     featured: false,
+    rating: 4.8,
+    reviewCount: 5,
+    badge: '-30%',
+    countdownEnd: new Date('2026-08-15T23:59:59'),
   },
 ];
 
 async function main() {
+  await connectDb();
   console.log('Seeding products...');
   for (const product of products) {
-    await prisma.product.upsert({
-      where: { slug: product.slug },
-      create: product,
-      update: product,
-    });
+    await Product.findOneAndUpdate(
+      { slug: product.slug },
+      product,
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
   }
   console.log(`Seeded ${products.length} products.`);
 }
@@ -174,5 +239,5 @@ main()
     process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect();
+    await mongoose.disconnect();
   });

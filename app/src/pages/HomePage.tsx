@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { products } from '@/data/products';
+import type { Product } from '@/data/products';
+import { useProducts } from '@/hooks/useProducts';
 import { blogPosts } from '@/data/blog';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
@@ -97,7 +98,7 @@ function HeroSection() {
   );
 }
 
-function ProductCard({ product, small }: { product: typeof products[0]; small?: boolean }) {
+function ProductCard({ product, small }: { product: Product; small?: boolean }) {
   const { addToCart } = useCart();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
 
@@ -178,15 +179,21 @@ function ProductCard({ product, small }: { product: typeof products[0]; small?: 
   );
 }
 
-function EverydayEssentials() {
+const categoryTiles = [
+  { name: 'Women', image: '/product-trench.jpg' },
+  { name: 'Men', image: '/product-henley.jpg' },
+  { name: 'Bags', image: '/product-bag-black.jpg' },
+  { name: 'Shoes', image: '/product-shoes.jpg' },
+];
+
+function CategoryShowcase() {
   const sectionRef = useRef<HTMLDivElement>(null);
-  const productsToShow = products.slice(0, 3);
 
   useEffect(() => {
     if (!sectionRef.current) return;
     const ctx = gsap.context(() => {
-      gsap.from('.ee-title', { y: 30, opacity: 0, duration: 0.6, scrollTrigger: { trigger: sectionRef.current, start: 'top 80%' } });
-      gsap.from('.ee-card', { y: 40, opacity: 0, duration: 0.6, stagger: 0.15, scrollTrigger: { trigger: sectionRef.current, start: 'top 70%' } });
+      gsap.from('.cat-title', { y: 30, opacity: 0, duration: 0.6, scrollTrigger: { trigger: sectionRef.current, start: 'top 80%' } });
+      gsap.from('.cat-card', { y: 40, opacity: 0, duration: 0.6, stagger: 0.15, scrollTrigger: { trigger: sectionRef.current, start: 'top 70%' } });
     }, sectionRef);
     return () => ctx.revert();
   }, []);
@@ -200,12 +207,20 @@ function EverydayEssentials() {
         </span>
       </div>
       <div className="max-w-[1440px] mx-auto px-6 lg:px-12 relative z-10">
-        <h2 className="ee-title text-3xl md:text-4xl font-bold text-center tracking-tight mb-12">EVERYDAY ESSENTIALS</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {productsToShow.map(p => (
-            <div key={p.id} className="ee-card">
-              <ProductCard product={p} />
-            </div>
+        <h2 className="cat-title text-3xl md:text-4xl font-bold text-center tracking-tight mb-12">CATEGORIES</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {categoryTiles.map(c => (
+            <Link key={c.name} to={`/shop?category=${c.name}`} className="cat-card group relative block overflow-hidden bg-[#F5F5F5]">
+              <img
+                src={c.image}
+                alt={c.name}
+                className="w-full aspect-[3/4] object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
+              <span className="absolute bottom-5 left-5 text-white text-lg font-semibold tracking-wide uppercase drop-shadow">
+                {c.name}
+              </span>
+            </Link>
           ))}
         </div>
       </div>
@@ -252,6 +267,7 @@ function DarkFeature() {
 
 function BestSellers() {
   const sectionRef = useRef<HTMLDivElement>(null);
+  const { products } = useProducts();
   const bestSellers = products.slice(5, 8);
 
   useEffect(() => {
@@ -297,6 +313,7 @@ function BestSellers() {
 
 function FeaturedProducts() {
   const sectionRef = useRef<HTMLDivElement>(null);
+  const { products } = useProducts();
   const featured = products.slice(0, 2);
 
   useEffect(() => {
@@ -508,7 +525,7 @@ export function HomePage() {
   return (
     <>
       <HeroSection />
-      <EverydayEssentials />
+      <CategoryShowcase />
       <DarkFeature />
       <BestSellers />
       <FeaturedProducts />

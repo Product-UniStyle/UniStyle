@@ -24,7 +24,9 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-10 lg:gap-8">
           {/* Brand */}
           <div className="lg:col-span-2">
-            <Link to="/" className="text-2xl font-bold text-white">Pomar</Link>
+            <Link to="/" className="flex items-center">
+              <img src="/Logo.jpeg" alt="UniStyle" className="h-10 w-auto" />
+            </Link>
             <p className="mt-4 text-sm text-[#999] leading-relaxed max-w-[280px]">
               We create timeless designs that blend modern style with everyday functionality.
             </p>
@@ -40,7 +42,7 @@ export function Footer() {
           <div>
             <h4 className="text-sm font-semibold uppercase tracking-wider mb-5">Account</h4>
             <ul className="space-y-3">
-              <li><Link to="/account" className="text-sm text-[#999] hover:text-white transition-colors">Career at Pomar</Link></li>
+              <li><Link to="/account" className="text-sm text-[#999] hover:text-white transition-colors">Career at UniStyle</Link></li>
               <li><Link to="/account" className="text-sm text-[#999] hover:text-white transition-colors">About us</Link></li>
               <li><Link to="/account" className="text-sm text-[#999] hover:text-white transition-colors">Sustainability</Link></li>
               <li><Link to="/account" className="text-sm text-[#999] hover:text-white transition-colors">Press</Link></li>
@@ -83,7 +85,7 @@ export function Footer() {
 
         {/* Bottom */}
         <div className="mt-16 pt-8 border-t border-[#333] text-center">
-          <p className="text-xs text-[#666]">@2026 Pomar Theme</p>
+          <p className="text-xs text-[#666]">@2026 UniStyle Theme</p>
         </div>
       </div>
     </footer>

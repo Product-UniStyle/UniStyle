@@ -6,8 +6,8 @@ export function errorHandler(err, _req, res, _next) {
     return res.status(400).json({ error: 'Validation failed', details: err.errors });
   }
 
-  if (err.code === 'P2002') {
-    // Prisma unique constraint violation
+  if (err.code === 11000) {
+    // Mongoose/MongoDB duplicate key violation
     return res.status(409).json({ error: 'A record with that value already exists' });
   }
 

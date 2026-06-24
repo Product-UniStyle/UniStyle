@@ -1,11 +1,14 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { User, Package, Heart, MapPin, Settings, LogOut, Plus, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useWishlist } from '@/context/WishlistContext';
 import { showToast } from '@/components/ToastContainer';
 
 export function AccountPage() {
   const { user, isAuthenticated, login, register, logout, updateProfile, addAddress, removeAddress, orders } = useAuth();
+  const { totalItems: wishlistTotal } = useWishlist();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [activeTab, setActiveTab] = useState('account');
   const [formData, setFormData] = useState({
@@ -21,9 +24,21 @@ export function AccountPage() {
     firstName: '', lastName: '', address1: '', address2: '', city: '', country: '', postalCode: '', phone: '',
   });
 
-  const handleLogin = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (searchParams.get('order') === 'success') {
+      const orderId = searchParams.get('orderId');
+      showToast(orderId ? `Order #${orderId} placed successfully!` : 'Order placed successfully!');
+      setActiveTab('orders');
+      searchParams.delete('order');
+      searchParams.delete('orderId');
+      setSearchParams(searchParams, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = login(formData.email, formData.password);
+    const success = await login(formData.email, formData.password);
     if (success) {
       showToast('Signed in successfully');
     } else {
@@ -31,9 +46,9 @@ export function AccountPage() {
     }
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = register({
+    const success = await register({
       firstName: formData.firstName,
       lastName: formData.lastName,
       email: formData.email,
@@ -46,15 +61,15 @@ export function AccountPage() {
     }
   };
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateProfile(profileEdit);
+    await updateProfile(profileEdit);
     showToast('Profile updated');
   };
 
-  const handleAddAddress = (e: React.FormEvent) => {
+  const handleAddAddress = async (e: React.FormEvent) => {
     e.preventDefault();
-    addAddress({ ...addressForm, isDefault: false });
+    await addAddress({ ...addressForm, isDefault: false });
     setShowAddressForm(false);
     setAddressForm({ firstName: '', lastName: '', address1: '', address2: '', city: '', country: '', postalCode: '', phone: '' });
     showToast('Address added');
@@ -210,7 +225,7 @@ export function AccountPage() {
                   </div>
                   <Link to="/wishlist" className="bg-[#F5F5F5] p-6 text-center hover:bg-[#E5E5E5] transition-colors">
                     <Heart size={24} className="mx-auto mb-3" />
-                    <p className="text-2xl font-bold">0</p>
+                    <p className="text-2xl font-bold">{wishlistTotal}</p>
                     <p className="text-xs text-[#666] uppercase tracking-wider mt-1">Wishlist Items</p>
                   </Link>
                   <div className="bg-[#F5F5F5] p-6 text-center">
@@ -318,7 +333,7 @@ export function AccountPage() {
                         <p className="font-medium">{addr.firstName} {addr.lastName}</p>
                         <div className="flex items-center gap-2">
                           {addr.isDefault && <span className="text-[10px] font-medium uppercase tracking-wider bg-[#F5F5F5] px-2 py-1">Default</span>}
-                          <button onClick={() => { removeAddress(addr.id); showToast('Address removed'); }} className="text-[#999] hover:text-[#DC2626]"><X size={14} /></button>
+                          <button onClick={async () => { await removeAddress(addr.id); showToast('Address removed'); }} className="text-[#999] hover:text-[#DC2626]"><X size={14} /></button>
                         </div>
                       </div>
                       <p className="text-sm text-[#666]">{addr.address1}</p>

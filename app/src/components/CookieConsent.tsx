@@ -4,17 +4,17 @@ export function CookieConsent() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const agreed = localStorage.getItem('pomar-cookies');
+    const agreed = localStorage.getItem('unistyle-cookies');
     if (!agreed) setVisible(true);
   }, []);
 
   const handleAgree = () => {
-    localStorage.setItem('pomar-cookies', 'true');
+    localStorage.setItem('unistyle-cookies', 'true');
     setVisible(false);
   };
 
   const handleDisagree = () => {
-    localStorage.setItem('pomar-cookies', 'false');
+    localStorage.setItem('unistyle-cookies', 'false');
     setVisible(false);
   };
 

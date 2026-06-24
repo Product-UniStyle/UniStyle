@@ -5,7 +5,9 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 
+import { connectDb } from './lib/db.js';
 import authRoutes from './routes/auth.js';
+import adminRoutes from './routes/admin.js';
 import productRoutes from './routes/products.js';
 import cartRoutes from './routes/cart.js';
 import wishlistRoutes from './routes/wishlist.js';
@@ -28,10 +30,12 @@ app.use(express.json());
 // Basic rate limiting on auth routes to slow down brute-force attempts
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 50 });
 app.use('/api/auth', authLimiter);
+app.use('/api/admin/login', authLimiter);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/wishlist', wishlistRoutes);
@@ -42,6 +46,14 @@ app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+
+connectDb()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('Failed to connect to MongoDB:', err);
+    process.exit(1);
+  });

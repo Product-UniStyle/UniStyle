@@ -1,7 +1,8 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { X, Filter, Grid3X3, LayoutGrid, LayoutList, ChevronDown } from 'lucide-react';
-import { products, categories } from '@/data/products';
+import { categories, type Product } from '@/data/products';
+import { useProducts } from '@/hooks/useProducts';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { showToast } from '@/components/ToastContainer';
@@ -25,7 +26,7 @@ const colors = [
   { name: 'Nude', hex: '#D4A996' },
 ];
 
-function ProductCard({ product }: { product: typeof products[0] }) {
+function ProductCard({ product }: { product: Product }) {
   const { addToCart } = useCart();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const inWishlist = isInWishlist(product.id);
@@ -124,8 +125,10 @@ export function ShopPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialCategory = searchParams.get('category') || '';
   const sectionRef = useRef<HTMLDivElement>(null);
+  const { products, loading } = useProducts();
 
   const [selectedCategories, setSelectedCategories] = useState<string[]>(initialCategory ? [initialCategory] : []);
+  const [selectedUniversities, setSelectedUniversities] = useState<string[]>([]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [selectedAvailability, setSelectedAvailability] = useState<string[]>([]);
@@ -135,9 +138,15 @@ export function ShopPage() {
   const [sortOpen, setSortOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const universities = useMemo(
+    () => Array.from(new Set(products.map(p => p.university).filter((u): u is string => !!u))).sort(),
+    [products]
+  );
+
   const filteredProducts = useMemo(() => {
     let result = [...products];
     if (selectedCategories.length) result = result.filter(p => selectedCategories.includes(p.category));
+    if (selectedUniversities.length) result = result.filter(p => !!p.university && selectedUniversities.includes(p.university));
     if (selectedColors.length) result = result.filter(p => p.colors?.some(c => selectedColors.includes(c.name)));
     if (selectedSizes.length) result = result.filter(p => p.sizes?.some(s => selectedSizes.includes(s)));
     if (selectedAvailability.length) {
@@ -155,10 +164,11 @@ export function ShopPage() {
       default: break;
     }
     return result;
-  }, [selectedCategories, selectedColors, selectedSizes, selectedAvailability, priceRange, sort]);
+  }, [products, selectedCategories, selectedUniversities, selectedColors, selectedSizes, selectedAvailability, priceRange, sort]);
 
   const clearFilters = () => {
     setSelectedCategories([]);
+    setSelectedUniversities([]);
     setSelectedColors([]);
     setSelectedSizes([]);
     setSelectedAvailability([]);
@@ -168,6 +178,10 @@ export function ShopPage() {
 
   const toggleCategory = (cat: string) => {
     setSelectedCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
+  };
+
+  const toggleUniversity = (uni: string) => {
+    setSelectedUniversities(prev => prev.includes(uni) ? prev.filter(u => u !== uni) : [...prev, uni]);
   };
 
   useEffect(() => {
@@ -200,6 +214,24 @@ export function ShopPage() {
               <button onClick={() => setSidebarOpen(false)}><X size={20} /></button>
             </div>
             <button onClick={clearFilters} className="text-xs font-medium underline text-[#666] hover:text-[#1A1A1A] mb-6">Reset</button>
+
+            {/* Universities */}
+            {universities.length > 0 && (
+              <div className="mb-6">
+                <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Universities</h4>
+                <div className="space-y-2">
+                  {universities.map(uni => {
+                    const count = products.filter(p => p.university === uni).length;
+                    return (
+                      <label key={uni} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
+                        <input type="checkbox" checked={selectedUniversities.includes(uni)} onChange={() => toggleUniversity(uni)} className="accent-[#1A1A1A]" />
+                        {uni} ({count})
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Categories */}
             <div className="mb-6">
@@ -304,7 +336,11 @@ export function ShopPage() {
             </div>
 
             {/* Product Grid */}
-            {filteredProducts.length > 0 ? (
+            {loading ? (
+              <div className="text-center py-20">
+                <p className="text-lg text-[#666]">Loading products...</p>
+              </div>
+            ) : filteredProducts.length > 0 ? (
               <div className={`grid gap-6 ${gridCols === 2 ? 'grid-cols-2' : gridCols === 3 ? 'grid-cols-2 md:grid-cols-3' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'}`}>
                 {filteredProducts.map(p => (
                   <div key={p.id} className="shop-card">

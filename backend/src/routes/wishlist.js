@@ -1,21 +1,20 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import prisma from '../lib/prisma.js';
+import WishlistItem from '../models/WishlistItem.js';
+import Product from '../models/Product.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 router.use(requireAuth);
 
-const addSchema = z.object({ productId: z.string().uuid() });
+const addSchema = z.object({ productId: z.string().length(24) });
 
 // GET /api/wishlist
 router.get('/', async (req, res, next) => {
   try {
-    const items = await prisma.wishlistItem.findMany({
-      where: { userId: req.user.id },
-      include: { product: true },
-      orderBy: { createdAt: 'desc' },
-    });
+    const items = await WishlistItem.find({ userId: req.user.id })
+      .populate('productId')
+      .sort({ createdAt: -1 });
     res.json({ items });
   } catch (err) {
     next(err);
@@ -27,15 +26,14 @@ router.post('/', async (req, res, next) => {
   try {
     const data = addSchema.parse(req.body);
 
-    const product = await prisma.product.findUnique({ where: { id: data.productId } });
+    const product = await Product.findById(data.productId);
     if (!product) return res.status(404).json({ error: 'Product not found' });
 
-    const item = await prisma.wishlistItem.upsert({
-      where: { userId_productId: { userId: req.user.id, productId: data.productId } },
-      create: { userId: req.user.id, productId: data.productId },
-      update: {},
-      include: { product: true },
-    });
+    const item = await WishlistItem.findOneAndUpdate(
+      { userId: req.user.id, productId: data.productId },
+      { userId: req.user.id, productId: data.productId },
+      { upsert: true, new: true }
+    ).populate('productId');
 
     res.status(201).json({ item });
   } catch (err) {
@@ -46,8 +44,9 @@ router.post('/', async (req, res, next) => {
 // DELETE /api/wishlist/:productId
 router.delete('/:productId', async (req, res, next) => {
   try {
-    await prisma.wishlistItem.deleteMany({
-      where: { userId: req.user.id, productId: req.params.productId },
+    await WishlistItem.deleteMany({
+      userId: req.user.id,
+      productId: req.params.productId,
     });
     res.status(204).send();
   } catch (err) {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Minus, Plus, Heart, Eye, Flame, Shuffle, HelpCircle, Truck, Share2, Clock, Check, Star, ChevronLeft, ChevronRight } from 'lucide-react';
-import { getProductBySlug, getRelatedProducts } from '@/data/products';
+import { useProduct, useRelatedProducts } from '@/hooks/useProducts';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { showToast } from '@/components/ToastContainer';
@@ -10,7 +10,7 @@ import gsap from 'gsap';
 export function ProductPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const product = getProductBySlug(slug || '');
+  const { product, loading } = useProduct(slug);
   const { addToCart } = useCart();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -22,6 +22,8 @@ export function ProductPage() {
   const [activeTab, setActiveTab] = useState('description');
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
   const [termsAgreed, setTermsAgreed] = useState(false);
+  const [zoomOpen, setZoomOpen] = useState(false);
+  const related = useRelatedProducts(product?.id, 4);
 
   useEffect(() => {
     if (product) {
@@ -58,6 +60,14 @@ export function ProductPage() {
     return () => ctx.revert();
   }, [product]);
 
+  if (loading) {
+    return (
+      <div className="mt-[72px] text-center py-20">
+        <p className="text-[#666]">Loading product...</p>
+      </div>
+    );
+  }
+
   if (!product) {
     return (
       <div className="mt-[72px] text-center py-20">
@@ -67,9 +77,7 @@ export function ProductPage() {
     );
   }
 
-  const related = getRelatedProducts(product.id, 4);
   const inWishlist = isInWishlist(product.id);
-  const [zoomOpen, setZoomOpen] = useState(false);
 
   const handleAddToCart = () => {
     addToCart(product, selectedColor, selectedSize, quantity);

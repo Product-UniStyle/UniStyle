@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { CartProvider } from '@/context/CartContext';
 import { WishlistProvider } from '@/context/WishlistContext';
 import { AuthProvider } from '@/context/AuthContext';
@@ -17,6 +17,38 @@ import { CartPage } from '@/pages/CartPage';
 import { WishlistPage } from '@/pages/WishlistPage';
 import { AccountPage } from '@/pages/AccountPage';
 import { CheckoutPage } from '@/pages/CheckoutPage';
+import { AdminLoginPage } from '@/pages/admin/AdminLoginPage';
+import { AdminPage } from '@/pages/admin/AdminPage';
+
+function AppLayout() {
+  const location = useLocation();
+  const isAdmin = location.pathname.startsWith('/admin');
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      {!isAdmin && <Header />}
+      <main className={isAdmin ? undefined : 'flex-1'}>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/shop" element={<ShopPage />} />
+          <Route path="/product/:slug" element={<ProductPage />} />
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/blog/:slug" element={<BlogPostPage />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/wishlist" element={<WishlistPage />} />
+          <Route path="/account" element={<AccountPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route path="/admin" element={<AdminPage />} />
+        </Routes>
+      </main>
+      {!isAdmin && <Footer />}
+      <ToastContainer />
+      {!isAdmin && <CookieConsent />}
+      {!isAdmin && <BackToTop />}
+    </div>
+  );
+}
 
 function App() {
   return (
@@ -25,26 +57,7 @@ function App() {
         <WishlistProvider>
           <CartProvider>
             <ScrollToTop />
-            <div className="min-h-screen flex flex-col">
-              <Header />
-              <main className="flex-1">
-                <Routes>
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/shop" element={<ShopPage />} />
-                  <Route path="/product/:slug" element={<ProductPage />} />
-                  <Route path="/blog" element={<BlogPage />} />
-                  <Route path="/blog/:slug" element={<BlogPostPage />} />
-                  <Route path="/cart" element={<CartPage />} />
-                  <Route path="/wishlist" element={<WishlistPage />} />
-                  <Route path="/account" element={<AccountPage />} />
-                  <Route path="/checkout" element={<CheckoutPage />} />
-                </Routes>
-              </main>
-              <Footer />
-              <ToastContainer />
-              <CookieConsent />
-              <BackToTop />
-            </div>
+            <AppLayout />
           </CartProvider>
         </WishlistProvider>
       </AuthProvider>

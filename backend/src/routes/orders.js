@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import prisma from '../lib/prisma.js';
+import Order from '../models/Order.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
@@ -8,11 +8,9 @@ router.use(requireAuth);
 // GET /api/orders  - order history for the logged-in user
 router.get('/', async (req, res, next) => {
   try {
-    const orders = await prisma.order.findMany({
-      where: { userId: req.user.id },
-      include: { items: { include: { product: true } } },
-      orderBy: { createdAt: 'desc' },
-    });
+    const orders = await Order.find({ userId: req.user.id })
+      .populate('items.productId')
+      .sort({ createdAt: -1 });
     res.json({ orders });
   } catch (err) {
     next(err);
@@ -22,12 +20,9 @@ router.get('/', async (req, res, next) => {
 // GET /api/orders/:id
 router.get('/:id', async (req, res, next) => {
   try {
-    const order = await prisma.order.findUnique({
-      where: { id: req.params.id },
-      include: { items: { include: { product: true } } },
-    });
+    const order = await Order.findById(req.params.id).populate('items.productId');
 
-    if (!order || order.userId !== req.user.id) {
+    if (!order || order.userId.toString() !== req.user.id) {
       return res.status(404).json({ error: 'Order not found' });
     }
 

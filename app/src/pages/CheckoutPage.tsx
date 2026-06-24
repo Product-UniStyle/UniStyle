@@ -4,10 +4,11 @@ import { CreditCard, Lock, ChevronLeft, ShieldCheck, Truck } from 'lucide-react'
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { showToast } from '@/components/ToastContainer';
+import { api, ApiError } from '@/lib/api';
 
 export function CheckoutPage() {
   const { items, subtotal, clearCart } = useCart();
-  const { user, addOrder } = useAuth();
+  const { user, isAuthenticated, refreshOrders } = useAuth();
   const navigate = useNavigate();
 
   const [step, setStep] = useState<'shipping' | 'payment'>('shipping');
@@ -43,39 +44,41 @@ export function CheckoutPage() {
     }
   };
 
-  const handlePlaceOrder = () => {
-    setProcessing(true);
-    setTimeout(() => {
-      const order = {
-        id: `ORD-${Date.now()}`,
-        date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
-        status: 'processing' as const,
-        items: items.map(item => ({
-          productId: item.product.id,
-          name: item.product.name,
-          image: item.product.images[0],
-          price: item.product.salePrice || item.product.price,
-          quantity: item.quantity,
-        })),
-        total,
-        shippingAddress: {
-          id: `addr-${Date.now()}`,
-          firstName: shippingData.firstName,
-          lastName: shippingData.lastName,
-          address1: shippingData.address1,
-          city: shippingData.city,
-          country: shippingData.country,
-          postalCode: shippingData.postalCode,
-          phone: shippingData.phone,
-          isDefault: false,
-        },
-      };
-      addOrder(order);
-      clearCart();
-      setProcessing(false);
-      showToast('Order placed successfully!');
+  const handlePlaceOrder = async () => {
+    if (!isAuthenticated) {
+      showToast('Please sign in to place an order', 'error');
       navigate('/account');
-    }, 2000);
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const { orderId, redirectUrl, url } = await api.createCheckoutSession({
+        shippingAddress: {
+          fullName: `${shippingData.firstName} ${shippingData.lastName}`.trim(),
+          line1: shippingData.address1,
+          line2: shippingData.address2 || undefined,
+          city: shippingData.city,
+          postalCode: shippingData.postalCode,
+          country: shippingData.country,
+          phone: shippingData.phone || undefined,
+        },
+      });
+
+      clearCart();
+      showToast('Order placed successfully!');
+      await refreshOrders();
+
+      if (url) {
+        window.location.href = url;
+      } else {
+        navigate(redirectUrl || `/account?order=success&orderId=${orderId}`);
+      }
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : 'Failed to place order', 'error');
+    } finally {
+      setProcessing(false);
+    }
   };
 
   if (items.length === 0) {

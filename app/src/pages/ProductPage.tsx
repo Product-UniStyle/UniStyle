@@ -77,7 +77,6 @@ export function ProductPage() {
   const [selectedSize, setSelectedSize] = useState(product?.sizes?.[0] || '');
   const [quantity, setQuantity] = useState(1);
   const [mainImage, setMainImage] = useState(0);
-  const [activeTab, setActiveTab] = useState('description');
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
   const [zoomOpen, setZoomOpen] = useState(false);
   const { products: allProducts } = useProducts();

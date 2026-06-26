@@ -6,7 +6,7 @@ import { showToast } from '@/components/ToastContainer';
 const LABEL_OPTIONS = ['Home', 'Hostel', 'Work', 'Parents Home', 'Other'];
 
 const LABEL_ICONS: Record<string, typeof Home> = {
-  Home, Hostel: Building2, Work: Briefcase, 'Parents Home': Heart,
+  Home, Hostel: Building2, Work: Briefcase, 'Parents Home': Heart, Other: MapPin,
 };
 
 function labelIcon(label: string) {
@@ -47,6 +47,11 @@ export function AddressesTab({ addresses, addAddress, updateAddress, removeAddre
     setShowForm(true);
   };
 
+  const closeForm = () => {
+    setShowForm(false);
+    setEditingId(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -70,45 +75,101 @@ export function AddressesTab({ addresses, addAddress, updateAddress, removeAddre
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">Addresses</h2>
-        {!showForm && (
-          <button onClick={openAdd} className="flex items-center gap-2 bg-[#1A1A1A] text-white text-sm font-semibold px-4 py-2.5 hover:bg-[#333] transition-colors">
-            <Plus size={16} /> Add New Address
-          </button>
-        )}
+        <button onClick={openAdd} className="flex items-center gap-2 bg-[#1A1A1A] text-white text-sm font-semibold px-4 py-2.5 hover:bg-[#333] transition-colors">
+          <Plus size={16} /> Add New Address
+        </button>
       </div>
 
+      {/* Apple Liquid Glass Modal */}
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-[#F5F5F5] p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold">{editingId ? 'Edit Address' : 'New Address'}</h3>
-            <button type="button" onClick={() => { setShowForm(false); setEditingId(null); }}><X size={16} /></button>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={closeForm}
+        >
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div
+            className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl border border-white/40 animate-liquid-glass-in"
+            style={{
+              background: 'rgba(255,255,255,0.22)',
+              backdropFilter: 'blur(48px)',
+              WebkitBackdropFilter: 'blur(48px)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 32px 64px rgba(0,0,0,0.22)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Specular rim highlights */}
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent rounded-t-3xl pointer-events-none" />
+            <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-white/25 to-transparent rounded-t-3xl pointer-events-none" />
+
+            <form onSubmit={handleSubmit} className="p-6">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="font-bold text-lg text-[#1A1A1A]">{editingId ? 'Edit Address' : 'New Address'}</h3>
+                <button
+                  type="button"
+                  onClick={closeForm}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-white/40 hover:bg-white/60 transition-colors"
+                >
+                  <X size={16} className="text-[#1A1A1A]" />
+                </button>
+              </div>
+
+              <div className="mb-4">
+                <label className="text-xs font-medium uppercase tracking-wider text-[#444] mb-2 block">Label</label>
+                <div className="grid grid-cols-5 gap-2">
+                  {LABEL_OPTIONS.map(l => {
+                    const Icon = labelIcon(l);
+                    const selected = form.label === l;
+                    return (
+                      <button
+                        key={l}
+                        type="button"
+                        onClick={() => setForm({ ...form, label: l })}
+                        className="flex flex-col items-center gap-1.5 py-3 px-1 rounded-xl border transition-all"
+                        style={selected ? {
+                          background: 'rgba(255,255,255,0.75)',
+                          border: '1px solid rgba(26,26,26,0.25)',
+                          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9), 0 4px 12px rgba(0,0,0,0.1)',
+                          backdropFilter: 'blur(12px)',
+                          WebkitBackdropFilter: 'blur(12px)',
+                        } : {
+                          background: 'rgba(255,255,255,0.25)',
+                          border: '1px solid rgba(255,255,255,0.4)',
+                        }}
+                      >
+                        <Icon size={16} className="text-[#1A1A1A]" />
+                        <span className="text-[10px] font-medium text-[#1A1A1A] leading-tight text-center">{l}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <input required placeholder="First Name" value={form.firstName} onChange={e => setForm({ ...form, firstName: e.target.value })} className="w-full bg-white/60 border border-white/50 px-3 py-2.5 text-sm outline-none focus:border-[#1A1A1A]/60 rounded-xl" />
+                <input required placeholder="Last Name" value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })} className="w-full bg-white/60 border border-white/50 px-3 py-2.5 text-sm outline-none focus:border-[#1A1A1A]/60 rounded-xl" />
+              </div>
+              <input required placeholder="Address" value={form.address1} onChange={e => setForm({ ...form, address1: e.target.value })} className="w-full bg-white/60 border border-white/50 px-3 py-2.5 text-sm outline-none focus:border-[#1A1A1A]/60 rounded-xl mb-4" />
+              <input placeholder="Apartment, suite, etc. (optional)" value={form.address2} onChange={e => setForm({ ...form, address2: e.target.value })} className="w-full bg-white/60 border border-white/50 px-3 py-2.5 text-sm outline-none focus:border-[#1A1A1A]/60 rounded-xl mb-4" />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                <input required placeholder="City" value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} className="w-full bg-white/60 border border-white/50 px-3 py-2.5 text-sm outline-none focus:border-[#1A1A1A]/60 rounded-xl" />
+                <input required placeholder="Country" value={form.country} onChange={e => setForm({ ...form, country: e.target.value })} className="w-full bg-white/60 border border-white/50 px-3 py-2.5 text-sm outline-none focus:border-[#1A1A1A]/60 rounded-xl" />
+                <input required placeholder="Postal Code" value={form.postalCode} onChange={e => setForm({ ...form, postalCode: e.target.value })} className="w-full bg-white/60 border border-white/50 px-3 py-2.5 text-sm outline-none focus:border-[#1A1A1A]/60 rounded-xl" />
+              </div>
+              <input required placeholder="Phone" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="w-full bg-white/60 border border-white/50 px-3 py-2.5 text-sm outline-none focus:border-[#1A1A1A]/60 rounded-xl mb-4" />
+              <label className="flex items-center gap-2 text-sm text-[#444] mb-5">
+                <input type="checkbox" checked={form.isDefault} onChange={e => setForm({ ...form, isDefault: e.target.checked })} className="accent-[#1A1A1A]" />
+                Set as default address
+              </label>
+              <button
+                type="submit"
+                disabled={saving}
+                className="w-full bg-[#1A1A1A] text-white text-xs font-semibold uppercase tracking-[0.08em] px-6 py-3 hover:bg-[#333] transition-colors disabled:opacity-60 rounded-xl"
+              >
+                {saving ? 'Saving...' : 'Save Address'}
+              </button>
+            </form>
           </div>
-          <div className="mb-4">
-            <label className="text-xs font-medium uppercase tracking-wider text-[#666] mb-1 block">Label</label>
-            <select value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} className="w-full bg-white border border-[#E5E5E5] px-3 py-2.5 text-sm outline-none focus:border-[#1A1A1A]">
-              {LABEL_OPTIONS.map(l => <option key={l} value={l}>{l}</option>)}
-            </select>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            <input required placeholder="First Name" value={form.firstName} onChange={e => setForm({ ...form, firstName: e.target.value })} className="w-full bg-white border border-[#E5E5E5] px-3 py-2.5 text-sm outline-none focus:border-[#1A1A1A]" />
-            <input required placeholder="Last Name" value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })} className="w-full bg-white border border-[#E5E5E5] px-3 py-2.5 text-sm outline-none focus:border-[#1A1A1A]" />
-          </div>
-          <input required placeholder="Address" value={form.address1} onChange={e => setForm({ ...form, address1: e.target.value })} className="w-full bg-white border border-[#E5E5E5] px-3 py-2.5 text-sm outline-none focus:border-[#1A1A1A] mb-4" />
-          <input placeholder="Apartment, suite, etc. (optional)" value={form.address2} onChange={e => setForm({ ...form, address2: e.target.value })} className="w-full bg-white border border-[#E5E5E5] px-3 py-2.5 text-sm outline-none focus:border-[#1A1A1A] mb-4" />
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-            <input required placeholder="City" value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} className="w-full bg-white border border-[#E5E5E5] px-3 py-2.5 text-sm outline-none focus:border-[#1A1A1A]" />
-            <input required placeholder="Country" value={form.country} onChange={e => setForm({ ...form, country: e.target.value })} className="w-full bg-white border border-[#E5E5E5] px-3 py-2.5 text-sm outline-none focus:border-[#1A1A1A]" />
-            <input required placeholder="Postal Code" value={form.postalCode} onChange={e => setForm({ ...form, postalCode: e.target.value })} className="w-full bg-white border border-[#E5E5E5] px-3 py-2.5 text-sm outline-none focus:border-[#1A1A1A]" />
-          </div>
-          <input required placeholder="Phone" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="w-full bg-white border border-[#E5E5E5] px-3 py-2.5 text-sm outline-none focus:border-[#1A1A1A] mb-4" />
-          <label className="flex items-center gap-2 text-sm text-[#666] mb-4">
-            <input type="checkbox" checked={form.isDefault} onChange={e => setForm({ ...form, isDefault: e.target.checked })} className="accent-[#1A1A1A]" />
-            Set as default address
-          </label>
-          <button type="submit" disabled={saving} className="bg-[#1A1A1A] text-white text-xs font-semibold uppercase tracking-[0.08em] px-6 py-3 hover:bg-[#333] transition-colors disabled:opacity-60">
-            {saving ? 'Saving...' : 'Save Address'}
-          </button>
-        </form>
+        </div>
       )}
 
       <p className="text-sm font-semibold mb-4">Saved Addresses ({addresses.length})</p>
@@ -142,7 +203,7 @@ export function AddressesTab({ addresses, addAddress, updateAddress, removeAddre
             </div>
           );
         })}
-        {addresses.length === 0 && !showForm && (
+        {addresses.length === 0 && (
           <p className="text-sm text-[#999]">No addresses saved.</p>
         )}
       </div>

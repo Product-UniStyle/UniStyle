@@ -65,6 +65,46 @@ import { useWishlist } from '@/context/WishlistContext';
 import { showToast } from '@/components/ToastContainer';
 import gsap from 'gsap';
 
+function ZoomLightbox({ images, name, current, onChange, onClose }: {
+  images: string[]; name: string; current: number;
+  onChange: (i: number) => void; onClose: () => void;
+}) {
+  const prev = () => onChange((current - 1 + images.length) % images.length);
+  const next = () => onChange((current + 1) % images.length);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') prev();
+      else if (e.key === 'ArrowRight') next();
+      else if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [current]);
+
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center" onClick={onClose}>
+      <button className="absolute top-6 right-6 text-white hover:opacity-70" onClick={onClose}>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <button
+        className="absolute left-4 text-white p-3 hover:bg-white/10 rounded-full"
+        onClick={e => { e.stopPropagation(); prev(); }}
+      >
+        <ChevronLeft size={28} />
+      </button>
+      <img src={images[current]} alt={name} className="max-w-[80vw] max-h-[85vh] object-contain" onClick={e => e.stopPropagation()} />
+      <button
+        className="absolute right-4 text-white p-3 hover:bg-white/10 rounded-full"
+        onClick={e => { e.stopPropagation(); next(); }}
+      >
+        <ChevronRight size={28} />
+      </button>
+      <span className="absolute bottom-6 text-white text-sm">{current + 1} / {images.length}</span>
+    </div>
+  );
+}
+
 export function ProductPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -177,7 +217,7 @@ export function ProductPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Images */}
           <div>
-            <div className="relative bg-[#F5F5F5] overflow-hidden mb-4 cursor-zoom-in max-h-[55vh] lg:max-h-[60vh]" onClick={() => setZoomOpen(true)}>
+            <div className="relative bg-[#E5E2E1] overflow-hidden mb-4 cursor-zoom-in max-h-[55vh] lg:max-h-[60vh]" onClick={() => setZoomOpen(true)}>
               <img src={product.images[mainImage]} alt={product.name} className="w-full h-[55vh] lg:h-[60vh] object-contain p-6" />
               {product.badge && (
                 <span className="absolute top-4 right-4 bg-[#1A1A1A] text-white text-xs font-medium px-3 py-1.5">{product.badge}</span>
@@ -399,17 +439,13 @@ export function ProductPage() {
 
       {/* Zoom Modal */}
       {zoomOpen && (
-        <div className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center" onClick={() => setZoomOpen(false)}>
-          <button className="absolute top-6 right-6 text-white" onClick={() => setZoomOpen(false)}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-          <img src={product.images[mainImage]} alt={product.name} className="max-w-[90vw] max-h-[90vh] object-contain" onClick={e => e.stopPropagation()} />
-          <div className="absolute bottom-6 flex items-center gap-4">
-            <button onClick={() => setMainImage((mainImage - 1 + product.images.length) % product.images.length)} className="text-white p-2 hover:bg-white/10"><ChevronLeft size={24} /></button>
-            <span className="text-white text-sm">{mainImage + 1} / {product.images.length}</span>
-            <button onClick={() => setMainImage((mainImage + 1) % product.images.length)} className="text-white p-2 hover:bg-white/10"><ChevronRight size={24} /></button>
-          </div>
-        </div>
+        <ZoomLightbox
+          images={product.images}
+          name={product.name}
+          current={mainImage}
+          onChange={setMainImage}
+          onClose={() => setZoomOpen(false)}
+        />
       )}
     </div>
   );

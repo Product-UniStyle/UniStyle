@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { X, Filter, Grid3X3, LayoutGrid, LayoutList, ChevronDown, SlidersHorizontal, ChevronRight } from 'lucide-react';
+import { X, Filter, Grid3X3, LayoutGrid, LayoutList, ChevronDown, ChevronRight } from 'lucide-react';
 import type { Product } from '@/data/products';
 import { useProducts } from '@/hooks/useProducts';
 import { useCart } from '@/context/CartContext';
@@ -17,7 +17,10 @@ const sortOptions = [
   { label: 'Price, high to low', value: 'price-desc' },
 ];
 
-const ACCESSORY_CATEGORIES = ['Badges', 'Bagpack', 'Beanies', 'Bottles', 'Caps', 'Crests', 'Mugs', 'Scarfs', 'Tote Bags'];
+const ACCESSORY_CATEGORIES = ['Badges', 'Bagpack', 'Beanies', 'Bottles', 'Crests', 'Mugs', 'Scarfs', 'Tote Bags'];
+
+const CLOTHING_ORDER = ['Hoodies', 'Sweatshirts', 'Tshirts', 'Joggers', 'Caps'];
+const CATEGORY_LABELS: Record<string, string> = { Tshirts: 'T-Shirts' };
 
 const colors = [
   { name: 'Black', hex: '#1A1A1A' },
@@ -140,7 +143,6 @@ export function ShopPage() {
   const [gridCols, setGridCols] = useState(4);
   const [sortOpen, setSortOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
   const [accessoriesOpen, setAccessoriesOpen] = useState(
     () => !!initialCategory && ACCESSORY_CATEGORIES.includes(initialCategory)
   );
@@ -164,6 +166,12 @@ export function ShopPage() {
     () => categories.filter(c => !ACCESSORY_CATEGORIES.includes(c)),
     [categories]
   );
+
+  const sortedClothingCategories = useMemo(() => {
+    const ordered = CLOTHING_ORDER.filter(c => otherCategories.includes(c));
+    const rest = otherCategories.filter(c => !CLOTHING_ORDER.includes(c));
+    return [...ordered, ...rest];
+  }, [otherCategories]);
 
   const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
   const allSizes = useMemo(() => {
@@ -253,26 +261,23 @@ export function ShopPage() {
 
       <div ref={sectionRef} className="max-w-[1440px] mx-auto px-6 lg:px-12 py-12">
         <div className="flex gap-8">
+          {/* Mobile backdrop */}
+          {sidebarOpen && (
+            <div className="fixed inset-0 z-30 bg-black/40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+          )}
           {/* Sidebar */}
           <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-72 bg-white lg:w-[280px] lg:shrink-0 p-6 lg:p-0 overflow-y-auto transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} border-r lg:border-0 border-[#E5E5E5]`}>
             <div className="flex items-center justify-between mb-6 lg:hidden">
               <h3 className="font-semibold">Filters</h3>
               <button onClick={() => setSidebarOpen(false)}><X size={20} /></button>
             </div>
-            <button
-              onClick={() => setFiltersCollapsed(prev => !prev)}
-              className="flex items-center justify-between w-full text-sm font-medium text-[#1A1A1A] mb-6"
-            >
-              <span className="flex items-center gap-2">
-                <SlidersHorizontal size={16} />
-                {filtersCollapsed ? 'Show Filters' : 'Hide Filters'}
-              </span>
-              <ChevronRight size={16} className={`transition-transform ${filtersCollapsed ? '' : 'rotate-90'}`} />
-            </button>
+            <div className="flex items-center  mb-6">
+              <button onClick={clearFilters} className="text-xs font-medium text-[#666] hover:text-[#1A1A1A] underline transition-colors">
+                Reset
+              </button>
+            </div>
 
-            {!filtersCollapsed && (
-              <>
-                {/* <button onClick={clearFilters} className="text-xs font-medium underline text-[#666] hover:text-[#1A1A1A] mb-6">Reset</button> */}
+            <>
 
                 {/* Gender */}
                 <div className="mb-6">
@@ -312,6 +317,16 @@ export function ShopPage() {
                 <div className="mb-6">
                   <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Categories</h4>
                   <div className="space-y-2">
+                    {sortedClothingCategories.map(cat => {
+                      const count = products.filter(p => p.category === cat).length;
+                      const label = CATEGORY_LABELS[cat] || cat;
+                      return (
+                        <label key={cat} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
+                          <input type="checkbox" checked={selectedCategories.includes(cat)} onChange={() => toggleCategory(cat)} className="accent-[#1A1A1A]" />
+                          {label} ({count})
+                        </label>
+                      );
+                    })}
                     {accessorySubcategories.length > 0 && (
                       <div>
                         <div className="flex items-center justify-between w-full text-sm text-[#666]">
@@ -358,15 +373,6 @@ export function ShopPage() {
                         )}
                       </div>
                     )}
-                    {otherCategories.map(cat => {
-                      const count = products.filter(p => p.category === cat).length;
-                      return (
-                        <label key={cat} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
-                          <input type="checkbox" checked={selectedCategories.includes(cat)} onChange={() => toggleCategory(cat)} className="accent-[#1A1A1A]" />
-                          {cat} ({count})
-                        </label>
-                      );
-                    })}
                   </div>
                 </div>
 
@@ -436,8 +442,7 @@ export function ShopPage() {
                     ))}
                   </div>
                 </div>
-              </>
-            )}
+            </>
           </aside>
 
           {/* Main */}

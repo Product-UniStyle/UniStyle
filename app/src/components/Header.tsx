@@ -51,6 +51,68 @@ const navLinks: NavItem[] = [
   // { label: 'Featured', href: '/shop' },
 ];
 
+function MobileMenu({ navLinks, onClose }: { navLinks: NavItem[]; onClose: () => void }) {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  const toggle = (index: number) => setOpenIndex(prev => prev === index ? null : index);
+
+  return (
+    <div className="fixed inset-0 z-[54] bg-white pt-[72px] lg:hidden overflow-y-auto">
+      <div className="px-6 py-6">
+        {navLinks.map((link, index) => (
+          <div key={link.label} className="border-b border-[#E5E5E5]">
+            {link.dropdown ? (
+              <>
+                <button
+                  className="flex items-center justify-between w-full text-lg font-medium py-4"
+                  onClick={() => toggle(index)}
+                >
+                  {link.label}
+                  <ChevronDown
+                    size={18}
+                    className={`text-[#666] transition-transform duration-200 ${openIndex === index ? 'rotate-180' : ''}`}
+                  />
+                </button>
+                {openIndex === index && (
+                  <div className="pb-3 space-y-1">
+                    {link.dropdown.map(item => (
+                      <Link
+                        key={item.label}
+                        to={item.href}
+                        className="block text-sm text-[#666] py-2 px-3 rounded-lg hover:bg-[#F5F5F5] hover:text-[#1A1A1A] transition-colors"
+                        onClick={onClose}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <Link
+                to={link.href}
+                className="block text-lg font-medium py-4"
+                onClick={onClose}
+              >
+                {link.label}
+              </Link>
+            )}
+          </div>
+        ))}
+        <div className="border-b border-[#E5E5E5]">
+          <Link
+            to="/account"
+            className="block text-lg font-medium py-4"
+            onClick={onClose}
+          >
+            Account
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Header() {
   const location = useLocation();
   const { totalItems: cartCount } = useCart();
@@ -58,6 +120,7 @@ export function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
+  const [scrolled, setScrolled] = useState(false);
   const dropdownTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -66,6 +129,12 @@ export function Header() {
       searchInputRef.current.focus();
     }
   }, [searchOpen]);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -83,7 +152,13 @@ export function Header() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-[#E5E5E5]">
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 border-b transition-all duration-300 ${
+          scrolled
+            ? 'bg-white/70 backdrop-blur-xl border-white/30'
+            : 'bg-white border-[#E5E5E5]'
+        }`}
+      >
         <div className="max-w-[1440px] mx-auto px-4 md:px-6 lg:px-12 h-[72px] flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center">
@@ -112,16 +187,27 @@ export function Header() {
                 </Link>
 
                 {link.dropdown && activeDropdown === index && (
-                  <div className="absolute top-full left-0 mt-1 bg-white shadow-[0_8px_32px_rgba(0,0,0,0.08)] py-2 min-w-[200px] z-50">
-                    {link.dropdown.map((item) => (
-                      <Link
-                        key={item.label}
-                        to={item.href}
-                        className="block px-4 py-2 text-sm text-[#666] hover:text-[#1A1A1A] hover:bg-[#F5F5F5] transition-colors"
-                      >
-                        {item.label}
-                      </Link>
-                    ))}
+                  <div
+                    className="absolute top-full left-0 mt-2 min-w-[200px] z-50 rounded-2xl border border-white/50 overflow-hidden animate-liquid-glass-in"
+                    style={{
+                      background: 'rgba(255,255,255,0.65)',
+                      backdropFilter: 'blur(48px)',
+                      WebkitBackdropFilter: 'blur(48px)',
+                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9), 0 16px 40px rgba(0,0,0,0.12)',
+                    }}
+                  >
+                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent pointer-events-none" />
+                    <div className="py-2">
+                      {link.dropdown.map((item) => (
+                        <Link
+                          key={item.label}
+                          to={item.href}
+                          className="block px-4 py-2 text-sm text-[#1A1A1A] hover:bg-white/50 transition-colors"
+                        >
+                          {item.label}
+                        </Link>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -137,10 +223,10 @@ export function Header() {
             >
               <Search size={20} strokeWidth={1.5} />
             </button>
-            <Link to="/account" className="hidden sm:block p-1 hover:opacity-70 transition-opacity" aria-label="Account">
+            <Link to="/account" className="p-1 hover:opacity-70 transition-opacity" aria-label="Account">
               <User size={20} strokeWidth={1.5} />
             </Link>
-            <Link to="/wishlist" className="relative p-1 hover:opacity-70 transition-opacity" aria-label="Wishlist">
+            <Link to="/wishlist" className="relative hidden sm:block p-1 hover:opacity-70 transition-opacity" aria-label="Wishlist">
               <Heart size={20} strokeWidth={1.5} />
               {wishlistCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-[#1A1A1A] text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
@@ -167,35 +253,55 @@ export function Header() {
         </div>
       </header>
 
-      {/* Search Overlay */}
+      {/* Search Modal */}
       {searchOpen && (
-        <div className="fixed inset-0 z-[55] bg-white/95 backdrop-blur-sm pt-[72px]">
-          <div className="max-w-[800px] mx-auto px-6 pt-16">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-2xl font-bold">Search</h2>
-              <button onClick={() => setSearchOpen(false)} className="p-2 hover:bg-[#F5F5F5]">
-                <X size={24} />
-              </button>
-            </div>
-            <input
-              ref={searchInputRef}
-              type="text"
-              placeholder="Search for products, categories..."
-              className="w-full text-2xl border-b-2 border-[#1A1A1A] pb-4 bg-transparent outline-none placeholder:text-[#999]"
-            />
-            <div className="mt-8">
-              <h3 className="text-sm font-medium text-[#999] uppercase tracking-wider mb-4">Popular Searches</h3>
-              <div className="flex flex-wrap gap-3">
-                {['Wool Coat', 'Handbag', 'Sunglasses', 'Sweater', 'Trench Coat'].map(term => (
-                  <Link
-                    key={term}
-                    to="/shop"
-                    onClick={() => setSearchOpen(false)}
-                    className="px-4 py-2 border border-[#E5E5E5] text-sm hover:border-[#1A1A1A] transition-colors"
-                  >
-                    {term}
-                  </Link>
-                ))}
+        <div
+          className="fixed inset-0 z-[55] flex items-start justify-center pt-24 px-4"
+          style={{ background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
+          onClick={() => setSearchOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-2xl rounded-3xl border border-white/40 animate-liquid-glass-in"
+            style={{
+              background: 'rgba(255,255,255,0.22)',
+              backdropFilter: 'blur(48px)',
+              WebkitBackdropFilter: 'blur(48px)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.6), 0 32px 64px rgba(0,0,0,0.22)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Specular rim */}
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent rounded-t-3xl pointer-events-none" />
+            <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-white/25 to-transparent rounded-t-3xl pointer-events-none" />
+
+            <div className="p-6">
+              <div className="flex items-center gap-3 bg-white/50 border border-white/50 rounded-2xl px-4 py-3 mb-5">
+                <Search size={18} className="text-[#666] shrink-0" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search for products, categories..."
+                  className="flex-1 bg-transparent outline-none text-[#1A1A1A] placeholder:text-[#999] text-sm"
+                />
+                <button onClick={() => setSearchOpen(false)} className="w-7 h-7 flex items-center justify-center rounded-full bg-white/50 hover:bg-white/70 transition-colors shrink-0">
+                  <X size={14} className="text-[#1A1A1A]" />
+                </button>
+              </div>
+              <div>
+                <h3 className="text-xs font-medium text-[#999] uppercase tracking-wider mb-3">Popular Searches</h3>
+                <div className="flex flex-wrap gap-2">
+                  {['Hoodies', 'Sweatshirts', 'Joggers', 'Caps', 'Tote Bags'].map(term => (
+                    <Link
+                      key={term}
+                      to={`/shop?category=${term}`}
+                      onClick={() => setSearchOpen(false)}
+                      className="px-3 py-1.5 rounded-xl text-sm text-[#1A1A1A] transition-colors"
+                      style={{ background: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.5)' }}
+                    >
+                      {term}
+                    </Link>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -204,42 +310,7 @@ export function Header() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-[54] bg-white pt-[72px] lg:hidden overflow-y-auto">
-          <div className="px-6 py-8 space-y-1">
-            {navLinks.map(link => (
-              <div key={link.label}>
-                <Link
-                  to={link.href}
-                  className="block text-lg font-medium py-3 border-b border-[#E5E5E5]"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {link.label}
-                </Link>
-                {link.dropdown && (
-                  <div className="pl-4 pb-2">
-                    {link.dropdown.slice(1).map(item => (
-                      <Link
-                        key={item.label}
-                        to={item.href}
-                        className="block text-sm text-[#666] py-2 hover:text-[#1A1A1A] transition-colors"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        {item.label}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-            <Link
-              to="/account"
-              className="block text-lg font-medium py-3 border-b border-[#E5E5E5]"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Account
-            </Link>
-          </div>
-        </div>
+        <MobileMenu navLinks={navLinks} onClose={() => setMobileMenuOpen(false)} />
       )}
     </>
   );

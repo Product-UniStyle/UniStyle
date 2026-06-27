@@ -23,7 +23,15 @@ export function AccountPage() {
   const { items: wishlistItems, totalItems: wishlistTotal, removeFromWishlist } = useWishlist();
   const [searchParams, setSearchParams] = useSearchParams();
   const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [activeTab, setActiveTab] = useState('overview');
+  const activeTab = searchParams.get('tab') || 'overview';
+
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', tab);
+      return next;
+    });
+  };
   const [formData, setFormData] = useState({
     firstName: '', lastName: '', email: '', password: '',
   });
@@ -32,10 +40,7 @@ export function AccountPage() {
     if (searchParams.get('order') === 'success') {
       const orderId = searchParams.get('orderId');
       showToast(orderId ? `Order #${orderId} placed successfully!` : 'Order placed successfully!');
-      setActiveTab('orders');
-      searchParams.delete('order');
-      searchParams.delete('orderId');
-      setSearchParams(searchParams, { replace: true });
+      setSearchParams({ tab: 'orders' }, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

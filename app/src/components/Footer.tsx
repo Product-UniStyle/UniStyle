@@ -25,7 +25,7 @@ export function Footer() {
           {/* Brand */}
           <div className="lg:col-span-2">
             <Link to="/" className="flex items-center">
-              <img src="/Logo.jpeg" alt="UniStyle" className="h-10 w-auto" />
+              <img src="/Logo.png" alt="UniStyle" className="h-10 w-auto" />
             </Link>
             <p className="mt-4 text-sm text-[#999] leading-relaxed max-w-[280px]">
               We create timeless designs that blend modern style with everyday functionality.

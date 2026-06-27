@@ -18,7 +18,7 @@ const productSchema = z.object({
   compareAt: z.number().int().nonnegative().optional(),
   category: z.string().min(1),
   university: z.string().optional(),
-  gender: z.enum(['men', 'women', 'unisex']).optional(),
+  gender: z.array(z.enum(['men', 'women'])).optional(),
   images: z.array(z.string()).default([]),
   sizes: z.array(z.string()).default([]),
   colors: z.array(colorSchema).default([]),

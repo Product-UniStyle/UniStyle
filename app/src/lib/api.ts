@@ -224,7 +224,7 @@ export interface BackendProduct {
   compareAt?: number; // cents
   category: string;
   university?: string;
-  gender?: 'men' | 'women' | 'unisex';
+  gender?: ('men' | 'women')[];
   images: string[];
   sizes: string[];
   colors: { name: string; hex: string }[];
@@ -290,7 +290,7 @@ export interface AdminProductInput {
   compareAt?: number; // cents
   category: string;
   university?: string;
-  gender?: 'men' | 'women' | 'unisex';
+  gender?: ('men' | 'women')[];
   images: string[];
   sizes: string[];
   colors: { name: string; hex: string }[];

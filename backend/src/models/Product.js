@@ -13,7 +13,7 @@ const productSchema = new mongoose.Schema({
   compareAt: Number, // cents
   category: { type: String, required: true },
   university: { type: String, default: '' },
-  gender: { type: String, enum: ['men', 'women', 'unisex'], default: 'unisex' },
+  gender: { type: [String], enum: ['men', 'women'], default: [] },
   images: { type: [String], default: [] },
   sizes: { type: [String], default: [] },
   colors: { type: [colorSchema], default: [] },

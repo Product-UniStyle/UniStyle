@@ -104,9 +104,11 @@ function buildProduct(record, warnings) {
   const university = record['university']?.trim() || '';
 
   const genderRaw = record['gender']?.trim().toLowerCase();
-  const gender = ['men', 'women', 'unisex'].includes(genderRaw) ? genderRaw : 'unisex';
-  if (genderRaw && gender !== genderRaw) {
-    warnings.push(`"${name}": unrecognized gender "${record['gender']}", defaulted to "unisex".`);
+  const gender = genderRaw
+    ? genderRaw.split(',').map(g => g.trim()).filter(g => ['men', 'women'].includes(g))
+    : [];
+  if (genderRaw && gender.length === 0) {
+    warnings.push(`"${name}": unrecognized gender "${record['gender']}", defaulted to none.`);
   }
 
   const images = [0, 1, 2, 3]
@@ -130,6 +132,12 @@ function buildProduct(record, warnings) {
 
   const compareAt = toCents(record['compareAt']);
 
+  const countdownEndRaw = record['countdownEnd']?.trim();
+  const countdownEnd = countdownEndRaw ? new Date(countdownEndRaw) : undefined;
+  if (countdownEndRaw && isNaN(countdownEnd?.getTime())) {
+    warnings.push(`"${name}": invalid countdownEnd "${countdownEndRaw}", skipped.`);
+  }
+
   const product = {
     slug: slugify(name),
     name,
@@ -148,6 +156,7 @@ function buildProduct(record, warnings) {
   };
 
   if (compareAt !== undefined) product.compareAt = compareAt;
+  if (countdownEnd && !isNaN(countdownEnd.getTime())) product.countdownEnd = countdownEnd;
   const rating = Number(record['rating']);
   if (record['rating'] && !Number.isNaN(rating)) product.rating = rating;
 

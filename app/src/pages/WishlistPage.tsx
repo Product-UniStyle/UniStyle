@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, ShoppingBag, Trash2, ChevronDown, Filter, SlidersHorizontal, ChevronRight } from 'lucide-react';
+import { Heart, ShoppingBag, Trash2, ChevronDown, Filter, ChevronRight, X } from 'lucide-react';
 import type { Product } from '@/data/products';
 import { useProducts } from '@/hooks/useProducts';
 import { useWishlist } from '@/context/WishlistContext';
@@ -122,7 +122,6 @@ export function WishlistPage() {
   const [sort, setSort] = useState('recent');
   const [sortOpen, setSortOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
 
   const universities = useMemo(
     () => Array.from(new Set(items.map(p => p.university).filter((u): u is string => !!u))).sort(),
@@ -133,6 +132,14 @@ export function WishlistPage() {
     () => Array.from(new Set(items.map(p => p.category).filter(Boolean))).sort(),
     [items]
   );
+
+  const clearFilters = () => {
+    setSelectedGenders([]);
+    setSelectedUniversities([]);
+    setSelectedCategories([]);
+    setSelectedAvailability([]);
+    setPriceRange([0, 200]);
+  };
 
   const toggleGender = (gender: string) => {
     setSelectedGenders(prev => prev.includes(gender) ? prev.filter(g => g !== gender) : [...prev, gender]);
@@ -146,7 +153,7 @@ export function WishlistPage() {
 
   const filteredItems = useMemo(() => {
     let result = [...items];
-    if (selectedGenders.length) result = result.filter(p => !!p.gender && selectedGenders.includes(p.gender));
+    if (selectedGenders.length) result = result.filter(p => p.gender?.some(g => selectedGenders.includes(g)));
     if (selectedUniversities.length) result = result.filter(p => !!p.university && selectedUniversities.includes(p.university));
     if (selectedCategories.length) result = result.filter(p => selectedCategories.includes(p.category));
     if (selectedAvailability.length) {
@@ -227,27 +234,21 @@ export function WishlistPage() {
             <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-72 bg-white lg:w-[280px] lg:shrink-0 p-6 lg:p-0 overflow-y-auto transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} border-r lg:border-0 border-[#E5E5E5]`}>
               <div className="flex items-center justify-between mb-6 lg:hidden">
                 <h3 className="font-semibold">Filters</h3>
-                <button onClick={() => setSidebarOpen(false)}>&times;</button>
+                <button onClick={() => setSidebarOpen(false)}><X size={20} /></button>
               </div>
-              <button
-                onClick={() => setFiltersCollapsed(prev => !prev)}
-                className="flex items-center justify-between w-full text-sm font-medium text-[#1A1A1A] mb-6"
-              >
-                <span className="flex items-center gap-2">
-                  <SlidersHorizontal size={16} />
-                  {filtersCollapsed ? 'Show Filters' : 'Hide Filters'}
-                </span>
-                <ChevronRight size={16} className={`transition-transform ${filtersCollapsed ? '' : 'rotate-90'}`} />
-              </button>
+              <div className="flex items-center mb-6">
+                <button onClick={clearFilters} className="text-xs font-medium text-[#666] hover:text-[#1A1A1A] underline transition-colors">
+                  Reset
+                </button>
+              </div>
 
-              {!filtersCollapsed && (
-                <>
+              <>
                   {/* Gender */}
                   <div className="mb-6">
                     <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Gender</h4>
                     <div className="space-y-2">
                       {['men', 'women'].map(gender => {
-                        const count = items.filter(p => p.gender === gender).length;
+                        const count = items.filter(p => p.gender?.includes(gender)).length;
                         return (
                           <label key={gender} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
                             <input type="checkbox" checked={selectedGenders.includes(gender)} onChange={() => toggleGender(gender)} className="accent-[#1A1A1A]" />
@@ -325,7 +326,6 @@ export function WishlistPage() {
                     />
                   </div>
                 </>
-              )}
             </aside>
 
             {/* Main */}
@@ -367,7 +367,8 @@ export function WishlistPage() {
                 </div>
               ) : (
                 <div className="text-center py-20">
-                  <p className="text-lg text-[#666]">No wishlist items match your filters.</p>
+                  <p className="text-lg text-[#666] mb-4">No wishlist items match your filters.</p>
+                  <button onClick={clearFilters} className="text-sm underline font-medium">Clear all filters</button>
                 </div>
               )}
 

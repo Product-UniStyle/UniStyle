@@ -20,7 +20,7 @@ export interface Product {
   reviewCount?: number;
   badge?: string;
   countdownEnd?: string;
-  gender?: 'women' | 'men' | 'unisex';
+  gender?: ('men' | 'women')[];
 }
 
 // Product data is served by the backend — see src/hooks/useProducts.ts.

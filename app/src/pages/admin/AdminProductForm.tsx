@@ -44,7 +44,9 @@ export function AdminProductForm({ initial, onSubmit, onCancel }: Props) {
   const [price, setPrice] = useState(initial ? (initial.price / 100).toString() : '');
   const [compareAt, setCompareAt] = useState(initial?.compareAt ? (initial.compareAt / 100).toString() : '');
   const [category, setCategory] = useState(initial?.category ?? categories[0]);
-  const [gender, setGender] = useState<'men' | 'women' | 'unisex'>(initial?.gender ?? 'unisex');
+  const [gender, setGender] = useState<('men' | 'women')[]>(initial?.gender ?? []);
+  const toggleGender = (g: 'men' | 'women') =>
+    setGender(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]);
   const [university, setUniversity] = useState(initial?.university ?? '');
   const [images, setImages] = useState(toCommaList(initial?.images ?? []));
   const [sizes, setSizes] = useState(toCommaList(initial?.sizes ?? []));
@@ -123,14 +125,14 @@ export function AdminProductForm({ initial, onSubmit, onCancel }: Props) {
 
       <div className="space-y-2">
         <Label>Gender</Label>
-        <Select value={gender} onValueChange={(v) => setGender(v as 'men' | 'women' | 'unisex')}>
-          <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="men">Men</SelectItem>
-            <SelectItem value="women">Women</SelectItem>
-            <SelectItem value="unisex">Unisex</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex gap-6 pt-1">
+          {(['men', 'women'] as const).map(g => (
+            <label key={g} className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox checked={gender.includes(g)} onCheckedChange={() => toggleGender(g)} />
+              {g === 'men' ? 'Men' : 'Women'}
+            </label>
+          ))}
+        </div>
       </div>
 
       <div className="space-y-2">

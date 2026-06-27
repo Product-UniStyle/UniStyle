@@ -189,7 +189,7 @@ export function ShopPage() {
 
   const filteredProducts = useMemo(() => {
     let result = [...products];
-    if (selectedGenders.length) result = result.filter(p => !!p.gender && selectedGenders.includes(p.gender));
+    if (selectedGenders.length) result = result.filter(p => p.gender?.some(g => selectedGenders.includes(g)));
     if (selectedCategories.length) result = result.filter(p => selectedCategories.includes(p.category));
     if (selectedUniversities.length) result = result.filter(p => !!p.university && selectedUniversities.includes(p.university));
     if (selectedColors.length) result = result.filter(p => p.colors?.some(c => selectedColors.includes(c.name)));
@@ -284,7 +284,7 @@ export function ShopPage() {
                   <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Gender</h4>
                   <div className="space-y-2">
                     {['men', 'women'].map(gender => {
-                      const count = products.filter(p => p.gender === gender).length;
+                      const count = products.filter(p => p.gender?.includes(gender)).length;
                       return (
                         <label key={gender} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
                           <input type="checkbox" checked={selectedGenders.includes(gender)} onChange={() => toggleGender(gender)} className="accent-[#1A1A1A]" />

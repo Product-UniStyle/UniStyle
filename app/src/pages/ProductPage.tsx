@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Heart, HelpCircle, Truck, Share2, Check, Star, ChevronLeft, ChevronRight, ShoppingBag, Lock, RefreshCw, Search } from 'lucide-react';
 import { useProduct, useProducts } from '@/hooks/useProducts';
 import type { Product } from '@/data/products';
+import { api, type BackendReview } from '@/lib/api';
 
 function CollectionRow({ title, products }: { title: string; products: Product[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -119,6 +120,8 @@ export function ProductPage() {
   const [mainImage, setMainImage] = useState(0);
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
   const [zoomOpen, setZoomOpen] = useState(false);
+  const [reviews, setReviews] = useState<BackendReview[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
   const { products: allProducts } = useProducts();
 
   const completeCollection = product
@@ -154,6 +157,15 @@ export function ProductPage() {
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
   }, [product?.countdownEnd]);
+
+  useEffect(() => {
+    if (!product?.id) return;
+    setReviewsLoading(true);
+    api.getProductReviews(product.id)
+      .then(data => setReviews(data.reviews))
+      .catch(() => setReviews([]))
+      .finally(() => setReviewsLoading(false));
+  }, [product?.id]);
 
   useEffect(() => {
     if (!sectionRef.current) return;
@@ -253,16 +265,19 @@ export function ProductPage() {
               )}
             </div>
             {/* Rating */}
-            {(product.rating || product.reviewCount) && (
-              <div className="flex items-center gap-2 mb-4">
-                <div className="flex">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} size={16} fill={i < Math.round(product.rating || 0) ? '#1A1A1A' : '#E5E5E5'} strokeWidth={0} />
-                  ))}
+            {reviews.length > 0 && (() => {
+              const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+              return (
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="flex">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} size={16} fill={i < Math.round(avg) ? '#1A1A1A' : '#E5E5E5'} strokeWidth={0} />
+                    ))}
+                  </div>
+                  <span className="text-sm text-[#666]">{avg.toFixed(1)} ({reviews.length} Reviews)</span>
                 </div>
-                <span className="text-sm text-[#666]">{(product.rating || 0).toFixed(1)} ({product.reviewCount || 0} Reviews)</span>
-              </div>
-            )}
+              );
+            })()}
 
             <p className="text-sm text-[#666] leading-relaxed mb-4">{product.description}</p>
 
@@ -383,50 +398,101 @@ export function ProductPage() {
           </div>
         </div>
 
-        {/* Tabs */}
-        {/* <div className="mt-16 border-t border-[#E5E5E5] pt-8">
-          <div className="flex items-center gap-8 mb-8 border-b border-[#E5E5E5]">
-            {['description', 'reviews', 'shipping', 'return'].map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`pb-3 text-sm font-medium capitalize transition-colors ${activeTab === tab ? 'text-[#1A1A1A] border-b-2 border-[#1A1A1A]' : 'text-[#999] hover:text-[#1A1A1A]'}`}
-              >
-                {tab}
-              </button>
-            ))}
+        {/* Reviews Section */}
+        <div className="mt-16 border-t border-[#E5E5E5] pt-10">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-bold tracking-tight">Customer Reviews</h2>
+            <span className="text-sm text-[#999]">{reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}</span>
           </div>
-          <div className="max-w-[800px]">
-            {activeTab === 'description' && <p className="text-sm text-[#666] leading-relaxed">{product.description}</p>}
-            {activeTab === 'reviews' && (
+
+          {reviewsLoading ? (
+            <div className="flex flex-col gap-4">
+              {[1, 2].map(i => (
+                <div key={i} className="h-24 bg-[#F5F5F5] animate-pulse" />
+              ))}
+            </div>
+          ) : reviews.length === 0 ? (
+            <div className="text-center py-16 border border-dashed border-[#E5E5E5]">
+              <Star size={32} className="mx-auto mb-3 text-[#E5E5E5]" strokeWidth={1} />
+              <p className="text-sm font-medium text-[#1A1A1A] mb-1">No reviews yet</p>
+              <p className="text-sm text-[#999]">Be the first to review this product after your purchase.</p>
+            </div>
+          ) : (() => {
+            const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+            const breakdown = [5, 4, 3, 2, 1].map(star => ({
+              star,
+              count: reviews.filter(r => r.rating === star).length,
+              pct: Math.round((reviews.filter(r => r.rating === star).length / reviews.length) * 100),
+            }));
+            return (
               <div>
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="flex items-center gap-2">
-                    <div className="flex">
+                {/* Summary */}
+                <div className="flex flex-col sm:flex-row gap-8 mb-10 pb-10 border-b border-[#E5E5E5]">
+                  {/* Big avg */}
+                  <div className="flex flex-col items-center justify-center min-w-[140px] bg-[#F9F9F9] border border-[#E5E5E5] px-8 py-6">
+                    <span className="text-5xl font-bold tracking-tight text-[#1A1A1A]">{avg.toFixed(1)}</span>
+                    <div className="flex gap-0.5 my-2">
                       {Array.from({ length: 5 }).map((_, i) => (
-                        <Star key={i} size={16} fill={i < Math.round(product.rating || 0) ? '#1A1A1A' : '#E5E5E5'} strokeWidth={0} />
+                        <Star key={i} size={16} fill={i < Math.round(avg) ? '#1A1A1A' : '#E5E5E5'} strokeWidth={0} />
                       ))}
                     </div>
-                    <span className="text-sm font-medium">Based on {product.reviewCount || 0} reviews</span>
+                    <span className="text-xs text-[#999] uppercase tracking-wider">{reviews.length} Reviews</span>
+                  </div>
+
+                  {/* Breakdown bars */}
+                  <div className="flex-1 flex flex-col justify-center gap-2.5">
+                    {breakdown.map(({ star, count, pct }) => (
+                      <div key={star} className="flex items-center gap-3">
+                        <div className="flex gap-0.5 shrink-0">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <Star key={i} size={11} fill={i < star ? '#1A1A1A' : '#E5E5E5'} strokeWidth={0} />
+                          ))}
+                        </div>
+                        <div className="flex-1 h-1.5 bg-[#E5E5E5] rounded-full overflow-hidden">
+                          <div className="h-full bg-[#1A1A1A] rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="text-xs text-[#999] w-8 text-right shrink-0">{count}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <p className="text-sm text-[#666]">Reviews will be displayed here.</p>
+
+                {/* Review cards */}
+                <div className="flex flex-col gap-6">
+                  {reviews.map(review => {
+                    const user = review.userId as unknown as { firstName?: string; lastName?: string };
+                    const firstName = user?.firstName || '';
+                    const lastName = user?.lastName || '';
+                    const name = [firstName, lastName].filter(Boolean).join(' ') || 'Customer';
+                    const initials = [firstName[0], lastName[0]].filter(Boolean).join('').toUpperCase() || 'C';
+                    return (
+                      <div key={review._id} className="border border-[#E5E5E5] p-5">
+                        <div className="flex items-start gap-4">
+                          {/* Avatar */}
+                          <div className="w-9 h-9 rounded-full bg-[#1A1A1A] text-white text-xs font-bold flex items-center justify-center shrink-0">
+                            {initials}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <span className="text-sm font-semibold text-[#1A1A1A]">{name}</span>
+                              <span className="text-xs text-[#999] shrink-0">{new Date(review.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                            </div>
+                            <div className="flex gap-0.5 mb-2">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <Star key={i} size={13} fill={i < review.rating ? '#1A1A1A' : '#E5E5E5'} strokeWidth={0} />
+                              ))}
+                            </div>
+                            <p className="text-sm text-[#555] leading-relaxed">{review.comment}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            )}
-            {activeTab === 'shipping' && (
-              <div className="text-sm text-[#666] leading-relaxed space-y-3">
-                <p>We offer worldwide shipping with trusted carriers. Standard delivery takes 5-7 business days, while express shipping delivers within 2-3 business days.</p>
-                <p>Free standard shipping on orders over $100. All orders are fully tracked and insured.</p>
-              </div>
-            )}
-            {activeTab === 'return' && (
-              <div className="text-sm text-[#666] leading-relaxed space-y-3">
-                <p>We accept returns within 30 days of delivery. Items must be unworn, unwashed, and in original packaging with tags attached.</p>
-                <p>Exchanges are available for different sizes or colors. Return shipping is free for defective or incorrect items.</p>
-              </div>
-            )}
-          </div>
-        </div> */}
+            );
+          })()}
+        </div>
       </div>
 
       {/* Complete the Collection */}

@@ -7,7 +7,7 @@ import { api, setAdminToken, getAdminToken } from '@/lib/api';
 
 export function AdminLoginPage() {
   const navigate = useNavigate();
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,11 +21,11 @@ export function AdminLoginPage() {
     setError('');
     setLoading(true);
     try {
-      const { token } = await api.adminLogin({ username, password });
+      const { token } = await api.adminLogin({ email, password });
       setAdminToken(token);
       navigate('/admin', { replace: true });
     } catch {
-      setError('Invalid username or password');
+      setError('Invalid email or password');
     } finally {
       setLoading(false);
     }
@@ -39,11 +39,12 @@ export function AdminLoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
+            <Label htmlFor="email">Email</Label>
             <Input
-              id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               autoFocus
               required
             />

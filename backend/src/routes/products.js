@@ -4,7 +4,7 @@ import { z } from 'zod';
 import Product from '../models/Product.js';
 import { parseProductsFromCsv, slugify } from '../lib/sheetImport.js';
 import { requireImportKey } from '../middleware/importAuth.js';
-import { requireAdmin } from '../middleware/auth.js';
+import { requireAdmin, requireEditorOrAdmin } from '../middleware/auth.js';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -124,8 +124,8 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-// POST /api/products (admin only)
-router.post('/', requireAdmin, async (req, res, next) => {
+// POST /api/products (editor or admin)
+router.post('/', requireEditorOrAdmin, async (req, res, next) => {
   try {
     const data = productSchema.parse(req.body);
     const slug = await uniqueSlug(data.name);
@@ -136,8 +136,8 @@ router.post('/', requireAdmin, async (req, res, next) => {
   }
 });
 
-// PATCH /api/products/:id (admin only)
-router.patch('/:id', requireAdmin, async (req, res, next) => {
+// PATCH /api/products/:id (editor or admin)
+router.patch('/:id', requireEditorOrAdmin, async (req, res, next) => {
   try {
     const data = updateProductSchema.parse(req.body);
     const product = await Product.findById(req.params.id);

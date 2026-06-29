@@ -1,9 +1,5 @@
 import jwt from 'jsonwebtoken';
 
-/**
- * Verifies the Bearer JWT on the Authorization header.
- * Attaches { id, email } to req.user on success.
- */
 export function requireAuth(req, res, next) {
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) {
@@ -21,10 +17,6 @@ export function requireAuth(req, res, next) {
   }
 }
 
-/**
- * Like requireAuth, but does not fail if no token is present.
- * Useful for routes that behave differently for logged-in vs guest users.
- */
 export function optionalAuth(req, _res, next) {
   const header = req.headers.authorization;
   if (header && header.startsWith('Bearer ')) {
@@ -39,11 +31,6 @@ export function optionalAuth(req, _res, next) {
   next();
 }
 
-/**
- * Verifies the Bearer JWT has an admin role (issued by POST /api/admin/login).
- * There is no admin/role system on the User model yet — admin sessions are a
- * separate JWT shape ({ role: 'admin' }) rather than a flag on a real account.
- */
 export function requireAdmin(req, res, next) {
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) {
@@ -57,7 +44,27 @@ export function requireAdmin(req, res, next) {
     if (payload.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
-    req.admin = true;
+    req.adminUser = { id: payload.sub, email: payload.email, role: payload.role };
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+}
+
+export function requireEditorOrAdmin(req, res, next) {
+  const header = req.headers.authorization;
+  if (!header || !header.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Missing or invalid Authorization header' });
+  }
+
+  const token = header.split(' ')[1];
+
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    if (payload.role !== 'admin' && payload.role !== 'editor') {
+      return res.status(403).json({ error: 'Editor or admin access required' });
+    }
+    req.adminUser = { id: payload.sub, email: payload.email, role: payload.role };
     next();
   } catch (err) {
     return res.status(401).json({ error: 'Invalid or expired token' });

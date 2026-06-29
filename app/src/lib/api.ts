@@ -20,6 +20,17 @@ export function setAdminToken(token: string | null) {
   else localStorage.removeItem(ADMIN_TOKEN_KEY);
 }
 
+export function getAdminRole(): 'admin' | 'editor' | null {
+  const token = getAdminToken();
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.role === 'admin' || payload.role === 'editor' ? payload.role : null;
+  } catch {
+    return null;
+  }
+}
+
 export class ApiError extends Error {
   status: number;
   details?: unknown;
@@ -146,6 +157,9 @@ export const api = {
   getOrders: () => request<{ orders: BackendOrder[] }>('/orders'),
 
   // ---- Reviews ----
+  getProductReviews: (productId: string) =>
+    request<{ reviews: BackendReview[] }>(`/reviews/product/${productId}`),
+
   getMyReviews: () => request<{ reviews: BackendReview[]; awaiting: BackendAwaitingReview[] }>('/reviews/me'),
 
   createReview: (data: { productId: string; orderId: string; rating: number; comment: string }) =>
@@ -155,8 +169,20 @@ export const api = {
     request<{ review: BackendReview }>(`/reviews/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
   // ---- Admin ----
-  adminLogin: (data: { username: string; password: string }) =>
-    adminRequest<{ token: string }>('/admin/login', { method: 'POST', body: JSON.stringify(data) }),
+  adminLogin: (data: { email: string; password: string }) =>
+    adminRequest<{ token: string; role: 'admin' | 'editor' }>('/admin/login', { method: 'POST', body: JSON.stringify(data) }),
+
+  getAdminUsers: () =>
+    adminRequest<{ users: BackendStaffUser[] }>('/admin/users'),
+
+  createAdminUser: (data: { email: string; password: string; role: 'admin' | 'editor'; firstName?: string; lastName?: string }) =>
+    adminRequest<{ user: BackendStaffUser }>('/admin/users', { method: 'POST', body: JSON.stringify(data) }),
+
+  updateUserRole: (id: string, role: 'admin' | 'editor' | 'customer') =>
+    adminRequest<{ user: BackendStaffUser }>(`/admin/users/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role }) }),
+
+  deleteAdminUser: (id: string) =>
+    adminRequest<void>(`/admin/users/${id}`, { method: 'DELETE' }),
 
   createProduct: (data: AdminProductInput) =>
     adminRequest<{ product: BackendProduct }>('/products', { method: 'POST', body: JSON.stringify(data) }),
@@ -204,6 +230,7 @@ export interface BackendUserPreferences {
 export interface BackendUser {
   _id: string;
   email: string;
+  role?: 'customer' | 'editor' | 'admin';
   firstName?: string;
   lastName?: string;
   phone?: string;
@@ -212,6 +239,15 @@ export interface BackendUser {
   nationality?: string;
   preferences?: BackendUserPreferences;
   addresses: BackendAddress[];
+  createdAt?: string;
+}
+
+export interface BackendStaffUser {
+  _id: string;
+  email: string;
+  role: 'admin' | 'editor';
+  firstName?: string;
+  lastName?: string;
   createdAt?: string;
 }
 

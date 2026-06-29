@@ -6,6 +6,19 @@ import Product from '../models/Product.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
+
+// GET /api/reviews/product/:productId — public, no auth required
+router.get('/product/:productId', async (req, res, next) => {
+  try {
+    const reviews = await Review.find({ productId: req.params.productId })
+      .populate('userId', 'firstName lastName')
+      .sort({ createdAt: -1 });
+    res.json({ reviews });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.use(requireAuth);
 
 const reviewSchema = z.object({

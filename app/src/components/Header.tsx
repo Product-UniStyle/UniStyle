@@ -32,6 +32,18 @@ const universityItems = [
   { label: 'University of Wollongong', href: '/shop?university=University+of+Wollongong' },
 ];
 
+const accessoriesItems = [
+  { label: 'View All Accessories', href: '/shop?category=Accessories' },
+  { label: 'Badges', href: '/shop?category=Badges' },
+  { label: 'Bagpack', href: '/shop?category=Bagpack' },
+  { label: 'Beanies', href: '/shop?category=Beanies' },
+  { label: 'Bottles', href: '/shop?category=Bottles' },
+  { label: 'Crests', href: '/shop?category=Crests' },
+  { label: 'Mugs', href: '/shop?category=Mugs' },
+  { label: 'Scarfs', href: '/shop?category=Scarfs' },
+  { label: 'Tote Bags', href: '/shop?category=Tote+Bags' },
+];
+
 type DropdownItem = { label: string; href: string };
 
 type NavItem = {
@@ -41,11 +53,12 @@ type NavItem = {
 };
 
 const navLinks: NavItem[] = [
-  { label: 'Home', href: '/' },
-  { label: 'Shop', href: '/shop' },
+  // { label: 'Home', href: '/' },
+  // { label: 'Shop', href: '/shop' },
   { label: 'Men', href: '/shop?gender=men', dropdown: menItems },
   { label: 'Women', href: '/shop?gender=women', dropdown: womenItems },
   { label: 'Universities', href: '/shop', dropdown: universityItems },
+  { label: 'Accessories', href: '/shop?category=Accessories', dropdown: accessoriesItems },
   // { label: 'Product', href: '/shop' },
   // { label: 'Blog', href: '/blog' },
   // { label: 'Featured', href: '/shop' },

@@ -15,7 +15,7 @@ export function requireImportKey(req, res, next) {
   if (header && header.startsWith('Bearer ')) {
     try {
       const payload = jwt.verify(header.split(' ')[1], process.env.JWT_SECRET);
-      if (payload.role === 'admin') return next();
+      if (payload.role === 'admin' || payload.role === 'editor') return next();
     } catch {
       // fall through to the error response below
     }

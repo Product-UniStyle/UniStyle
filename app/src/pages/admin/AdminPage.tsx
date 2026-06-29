@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
-import { Plus, Pencil, Trash2, Upload, Download, LogOut, Search, Star } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Download, LogOut, Search, Star, Users, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -15,12 +15,18 @@ import {
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table';
-import { api, ApiError, getAdminToken, setAdminToken, type BackendProduct, type AdminProductInput } from '@/lib/api';
+import { api, ApiError, getAdminToken, setAdminToken, getAdminRole, type BackendProduct, type AdminProductInput } from '@/lib/api';
 import { AdminProductForm } from './AdminProductForm';
 import { AdminCsvUpload } from './AdminCsvUpload';
+import { AdminUsersTab } from './AdminUsersTab';
+
+type Tab = 'products' | 'users';
 
 export function AdminPage() {
   const navigate = useNavigate();
+  const role = getAdminRole();
+  const [tab, setTab] = useState<Tab>('products');
+
   const [products, setProducts] = useState<BackendProduct[]>([]);
   const [search, setSearch] = useState('');
   const [featuredOnly, setFeaturedOnly] = useState(false);
@@ -64,10 +70,11 @@ export function AdminPage() {
   }, []);
 
   useEffect(() => {
+    if (tab !== 'products') return;
     const t = setTimeout(load, 300);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, featuredOnly]);
+  }, [search, featuredOnly, tab]);
 
   const openCreate = () => { setEditing(null); setFormOpen(true); };
   const openEdit = (p: BackendProduct) => { setEditing(p); setFormOpen(true); };
@@ -130,128 +137,161 @@ export function AdminPage() {
     <div className="min-h-screen bg-[#FAFAFA]">
       <header className="border-b border-[#E5E5E5] bg-white">
         <div className="max-w-[1280px] mx-auto px-4 md:px-6 py-4 flex items-center justify-between gap-4">
-          <h1 className="text-xl font-bold tracking-tight text-[#1A1A1A]">UniStyle Admin</h1>
-          <Button variant="outline" size="sm" onClick={handleLogout}>
-            <LogOut className="size-4 mr-1.5" /> Log out
-          </Button>
+          <div className="flex items-center gap-6">
+            <h1 className="text-xl font-bold tracking-tight text-[#1A1A1A]">UniStyle Admin</h1>
+            <nav className="flex gap-1">
+              <button
+                onClick={() => setTab('products')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  tab === 'products' ? 'bg-[#1A1A1A] text-white' : 'text-[#666] hover:text-[#1A1A1A]'
+                }`}
+              >
+                <Package className="size-4" /> Products
+              </button>
+              {role === 'admin' && (
+                <button
+                  onClick={() => setTab('users')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                    tab === 'users' ? 'bg-[#1A1A1A] text-white' : 'text-[#666] hover:text-[#1A1A1A]'
+                  }`}
+                >
+                  <Users className="size-4" /> Users
+                </button>
+              )}
+            </nav>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-[#999] hidden sm:block capitalize">{role}</span>
+            <Button variant="outline" size="sm" onClick={handleLogout}>
+              <LogOut className="size-4 mr-1.5" /> Log out
+            </Button>
+          </div>
         </div>
       </header>
 
       <main className="max-w-[1280px] mx-auto px-4 md:px-6 py-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div className="relative w-full sm:max-w-[320px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[#999]" />
-            <Input
-              placeholder="Search products..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant={featuredOnly ? 'default' : 'outline'}
-              className={featuredOnly ? 'bg-[#1A1A1A] hover:bg-[#333]' : undefined}
-              onClick={() => setFeaturedOnly((v) => !v)}
-            >
-              <Star className="size-4 mr-1.5" /> Featured only
-            </Button>
-            <Button variant="outline" onClick={handleExport} disabled={products.length === 0}>
-              <Download className="size-4 mr-1.5" /> Export
-            </Button>
-            <Button variant="outline" onClick={() => setCsvOpen(true)}>
-              <Upload className="size-4 mr-1.5" /> Upload CSV
-            </Button>
-            <Button onClick={openCreate} className="bg-[#1A1A1A] hover:bg-[#333]">
-              <Plus className="size-4 mr-1.5" /> Add product
-            </Button>
-          </div>
-        </div>
+        {tab === 'users' && role === 'admin' ? (
+          <AdminUsersTab />
+        ) : (
+          <>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <div className="relative w-full sm:max-w-[320px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[#999]" />
+                <Input
+                  placeholder="Search products..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant={featuredOnly ? 'default' : 'outline'}
+                  className={featuredOnly ? 'bg-[#1A1A1A] hover:bg-[#333]' : undefined}
+                  onClick={() => setFeaturedOnly((v) => !v)}
+                >
+                  <Star className="size-4 mr-1.5" /> Featured only
+                </Button>
+                <Button variant="outline" onClick={handleExport} disabled={products.length === 0}>
+                  <Download className="size-4 mr-1.5" /> Export
+                </Button>
+                <Button variant="outline" onClick={() => setCsvOpen(true)}>
+                  <Upload className="size-4 mr-1.5" /> Upload CSV
+                </Button>
+                <Button onClick={openCreate} className="bg-[#1A1A1A] hover:bg-[#333]">
+                  <Plus className="size-4 mr-1.5" /> Add product
+                </Button>
+              </div>
+            </div>
 
-        {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
+            {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
 
-        {featuredCount > 3 && (
-          <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 mb-4">
-            {featuredCount} products are marked Featured, but the homepage only shows 3. Turn off the extras below so you know exactly which 3 will appear.
-          </p>
+            {featuredCount > 3 && (
+              <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 mb-4">
+                {featuredCount} products are marked Featured, but the homepage only shows 3. Turn off the extras below so you know exactly which 3 will appear.
+              </p>
+            )}
+
+            <div className="bg-white border border-[#E5E5E5] rounded-lg overflow-hidden">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Product</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Price</TableHead>
+                      <TableHead>Stock</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Featured</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow><TableCell colSpan={7} className="text-center py-10 text-[#999]">Loading...</TableCell></TableRow>
+                    ) : products.length === 0 ? (
+                      <TableRow><TableCell colSpan={7} className="text-center py-10 text-[#999]">No products found</TableCell></TableRow>
+                    ) : (
+                      products.map((p) => (
+                        <TableRow key={p._id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={p.images[0]}
+                                alt=""
+                                className="w-10 h-10 object-cover rounded bg-[#F5F5F5]"
+                              />
+                              <span className="font-medium text-[#1A1A1A]">{p.name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{p.category}</TableCell>
+                          <TableCell>
+                            {p.compareAt ? (
+                              <span className="flex items-center gap-1.5">
+                                <span>${(p.price / 100).toFixed(2)}</span>
+                                <span className="text-[#999] line-through text-xs">${(p.compareAt / 100).toFixed(2)}</span>
+                              </span>
+                            ) : (
+                              `$${(p.price / 100).toFixed(2)}`
+                            )}
+                          </TableCell>
+                          <TableCell>{p.stock}</TableCell>
+                          <TableCell>
+                            {p.stock > 0 ? (
+                              <Badge variant="secondary">In stock</Badge>
+                            ) : (
+                              <Badge variant="destructive">Out of stock</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => toggleFeatured(p)}
+                              title={p.featured ? 'Remove from Featured' : 'Mark as Featured'}
+                            >
+                              <Star className={`size-4 ${p.featured ? 'fill-amber-400 text-amber-500' : 'text-[#999]'}`} />
+                            </Button>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(p)}>
+                              <Pencil className="size-4" />
+                            </Button>
+                            {role === 'admin' && (
+                              <Button variant="ghost" size="icon" onClick={() => setDeleting(p)}>
+                                <Trash2 className="size-4 text-red-600" />
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </>
         )}
-
-        <div className="bg-white border border-[#E5E5E5] rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Product</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Stock</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Featured</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-10 text-[#999]">Loading...</TableCell></TableRow>
-              ) : products.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-10 text-[#999]">No products found</TableCell></TableRow>
-              ) : (
-                products.map((p) => (
-                  <TableRow key={p._id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={p.images[0]}
-                          alt=""
-                          className="w-10 h-10 object-cover rounded bg-[#F5F5F5]"
-                        />
-                        <span className="font-medium text-[#1A1A1A]">{p.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{p.category}</TableCell>
-                    <TableCell>
-                      {p.compareAt ? (
-                        <span className="flex items-center gap-1.5">
-                          <span>${(p.price / 100).toFixed(2)}</span>
-                          <span className="text-[#999] line-through text-xs">${(p.compareAt / 100).toFixed(2)}</span>
-                        </span>
-                      ) : (
-                        `$${(p.price / 100).toFixed(2)}`
-                      )}
-                    </TableCell>
-                    <TableCell>{p.stock}</TableCell>
-                    <TableCell>
-                      {p.stock > 0 ? (
-                        <Badge variant="secondary">In stock</Badge>
-                      ) : (
-                        <Badge variant="destructive">Out of stock</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => toggleFeatured(p)}
-                        title={p.featured ? 'Remove from Featured' : 'Mark as Featured'}
-                      >
-                        <Star className={`size-4 ${p.featured ? 'fill-amber-400 text-amber-500' : 'text-[#999]'}`} />
-                      </Button>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(p)}>
-                        <Pencil className="size-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleting(p)}>
-                        <Trash2 className="size-4 text-red-600" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-          </div>
-        </div>
       </main>
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>

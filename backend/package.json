@@ -7,6 +7,7 @@
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
     "seed": "node src/seed.js",
+    "seed-admin": "node src/seed-admin.js",
     "import-sheet": "node src/importFromSheet.js"
   },
   "dependencies": {
@@ -20,6 +21,7 @@
     "mongoose": "^8.9.0",
     "morgan": "^1.10.0",
     "multer": "^2.2.0",
+    "nodemailer": "^9.0.1",
     "stripe": "^16.12.0",
     "zod": "^3.23.8"
   }

@@ -118,7 +118,7 @@ export function WishlistPage() {
   const [selectedUniversities, setSelectedUniversities] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedAvailability, setSelectedAvailability] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 200]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 9999]);
   const [sort, setSort] = useState('recent');
   const [sortOpen, setSortOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -133,12 +133,35 @@ export function WishlistPage() {
     [items]
   );
 
+  const maxPrice = useMemo(
+    () => Math.ceil(Math.max(...items.map(p => p.salePrice || p.price), 200)),
+    [items]
+  );
+
+  const applyFilters = (
+    source: Product[],
+    opts: { genders?: string[]; unis?: string[]; cats?: string[]; avail?: string[]; price?: [number, number] }
+  ) => {
+    let r = source;
+    if (opts.genders?.length) r = r.filter(p => p.gender?.some(g => opts.genders!.includes(g)));
+    if (opts.unis?.length) r = r.filter(p => !!p.university && opts.unis!.includes(p.university));
+    if (opts.cats?.length) r = r.filter(p => opts.cats!.includes(p.category));
+    if (opts.avail?.length) r = r.filter(p => opts.avail!.includes(p.inStock ? 'in' : 'out'));
+    if (opts.price) r = r.filter(p => { const ep = p.salePrice || p.price; return ep >= opts.price![0] && ep <= opts.price![1]; });
+    return r;
+  };
+
+  const genderBase   = useMemo(() => applyFilters(items, { unis: selectedUniversities, cats: selectedCategories, avail: selectedAvailability, price: priceRange }), [items, selectedUniversities, selectedCategories, selectedAvailability, priceRange]);
+  const universityBase = useMemo(() => applyFilters(items, { genders: selectedGenders, cats: selectedCategories, avail: selectedAvailability, price: priceRange }), [items, selectedGenders, selectedCategories, selectedAvailability, priceRange]);
+  const categoryBase = useMemo(() => applyFilters(items, { genders: selectedGenders, unis: selectedUniversities, avail: selectedAvailability, price: priceRange }), [items, selectedGenders, selectedUniversities, selectedAvailability, priceRange]);
+  const availBase    = useMemo(() => applyFilters(items, { genders: selectedGenders, unis: selectedUniversities, cats: selectedCategories, price: priceRange }), [items, selectedGenders, selectedUniversities, selectedCategories, priceRange]);
+
   const clearFilters = () => {
     setSelectedGenders([]);
     setSelectedUniversities([]);
     setSelectedCategories([]);
     setSelectedAvailability([]);
-    setPriceRange([0, 200]);
+    setPriceRange([0, 9999]);
   };
 
   const toggleGender = (gender: string) => {
@@ -248,7 +271,7 @@ export function WishlistPage() {
                     <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Gender</h4>
                     <div className="space-y-2">
                       {(['men', 'women'] as const).map(gender => {
-                        const count = items.filter(p => p.gender?.includes(gender)).length;
+                        const count = genderBase.filter(p => p.gender?.includes(gender)).length;
                         return (
                           <label key={gender} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
                             <input type="checkbox" checked={selectedGenders.includes(gender)} onChange={() => toggleGender(gender)} className="accent-[#1A1A1A]" />
@@ -265,7 +288,7 @@ export function WishlistPage() {
                       <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Universities</h4>
                       <div className="space-y-2">
                         {universities.map(uni => {
-                          const count = items.filter(p => p.university === uni).length;
+                          const count = universityBase.filter(p => p.university === uni).length;
                           return (
                             <label key={uni} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
                               <input type="checkbox" checked={selectedUniversities.includes(uni)} onChange={() => toggleUniversity(uni)} className="accent-[#1A1A1A]" />
@@ -282,7 +305,7 @@ export function WishlistPage() {
                     <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Categories</h4>
                     <div className="space-y-2">
                       {categories.map(cat => {
-                        const count = items.filter(p => p.category === cat).length;
+                        const count = categoryBase.filter(p => p.category === cat).length;
                         return (
                           <label key={cat} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
                             <input type="checkbox" checked={selectedCategories.includes(cat)} onChange={() => toggleCategory(cat)} className="accent-[#1A1A1A]" />
@@ -299,11 +322,11 @@ export function WishlistPage() {
                     <div className="space-y-2">
                       <label className="flex items-center gap-2 text-sm text-[#666] cursor-pointer">
                         <input type="checkbox" checked={selectedAvailability.includes('in')} onChange={() => setSelectedAvailability(prev => prev.includes('in') ? prev.filter(x => x !== 'in') : [...prev, 'in'])} className="accent-[#1A1A1A]" />
-                        In stock ({items.filter(p => p.inStock).length})
+                        In stock ({availBase.filter(p => p.inStock).length})
                       </label>
                       <label className="flex items-center gap-2 text-sm text-[#666] cursor-pointer">
                         <input type="checkbox" checked={selectedAvailability.includes('out')} onChange={() => setSelectedAvailability(prev => prev.includes('out') ? prev.filter(x => x !== 'out') : [...prev, 'out'])} className="accent-[#1A1A1A]" />
-                        Out of stock ({items.filter(p => !p.inStock).length})
+                        Out of stock ({availBase.filter(p => !p.inStock).length})
                       </label>
                     </div>
                   </div>
@@ -319,8 +342,8 @@ export function WishlistPage() {
                     <input
                       type="range"
                       min={0}
-                      max={2000}
-                      value={priceRange[1]}
+                      max={maxPrice}
+                      value={Math.min(priceRange[1], maxPrice)}
                       onChange={e => setPriceRange([0, parseInt(e.target.value)])}
                       className="w-full accent-[#1A1A1A]"
                     />

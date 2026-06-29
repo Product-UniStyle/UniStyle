@@ -138,7 +138,7 @@ export function ShopPage() {
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [selectedAvailability, setSelectedAvailability] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 200]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 9999]);
   const [sort, setSort] = useState('relevant');
   const [gridCols, setGridCols] = useState(4);
   const [sortOpen, setSortOpen] = useState(false);
@@ -187,6 +187,34 @@ export function ShopPage() {
     });
   }, [products]);
 
+  const maxPrice = useMemo(
+    () => Math.ceil(Math.max(...products.map(p => p.salePrice || p.price), 200)),
+    [products]
+  );
+
+  // Helper: apply all filters except one group, used for independent facet counts
+  const applyFilters = (
+    source: Product[],
+    opts: { genders?: string[]; cats?: string[]; unis?: string[]; colors?: string[]; sizes?: string[]; avail?: string[]; price?: [number, number] }
+  ) => {
+    let r = source;
+    if (opts.genders?.length) r = r.filter(p => p.gender?.some(g => opts.genders!.includes(g)));
+    if (opts.cats?.length) r = r.filter(p => opts.cats!.includes(p.category));
+    if (opts.unis?.length) r = r.filter(p => !!p.university && opts.unis!.includes(p.university));
+    if (opts.colors?.length) r = r.filter(p => p.colors?.some(c => opts.colors!.includes(c.name)));
+    if (opts.sizes?.length) r = r.filter(p => p.sizes?.some(s => opts.sizes!.includes(s)));
+    if (opts.avail?.length) r = r.filter(p => opts.avail!.includes(p.inStock ? 'in' : 'out'));
+    if (opts.price) r = r.filter(p => { const ep = p.salePrice || p.price; return ep >= opts.price![0] && ep <= opts.price![1]; });
+    return r;
+  };
+
+  // Base pools for each filter group (all active filters EXCEPT that group)
+  const genderBase = useMemo(() => applyFilters(products, { cats: selectedCategories, unis: selectedUniversities, colors: selectedColors, sizes: selectedSizes, avail: selectedAvailability, price: priceRange }), [products, selectedCategories, selectedUniversities, selectedColors, selectedSizes, selectedAvailability, priceRange]);
+  const categoryBase = useMemo(() => applyFilters(products, { genders: selectedGenders, unis: selectedUniversities, colors: selectedColors, sizes: selectedSizes, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedUniversities, selectedColors, selectedSizes, selectedAvailability, priceRange]);
+  const universityBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, colors: selectedColors, sizes: selectedSizes, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedCategories, selectedColors, selectedSizes, selectedAvailability, priceRange]);
+  const sizeBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, unis: selectedUniversities, colors: selectedColors, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedCategories, selectedUniversities, selectedColors, selectedAvailability, priceRange]);
+  const availBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, unis: selectedUniversities, colors: selectedColors, sizes: selectedSizes, price: priceRange }), [products, selectedGenders, selectedCategories, selectedUniversities, selectedColors, selectedSizes, priceRange]);
+
   const filteredProducts = useMemo(() => {
     let result = [...products];
     if (selectedGenders.length) result = result.filter(p => p.gender?.some(g => selectedGenders.includes(g)));
@@ -218,7 +246,7 @@ export function ShopPage() {
     setSelectedColors([]);
     setSelectedSizes([]);
     setSelectedAvailability([]);
-    setPriceRange([0, 200]);
+    setPriceRange([0, 9999]);
     setSearchParams({});
   };
 
@@ -284,7 +312,7 @@ export function ShopPage() {
                   <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Gender</h4>
                   <div className="space-y-2">
                     {(['men', 'women'] as const).map(gender => {
-                      const count = products.filter(p => p.gender?.includes(gender)).length;
+                      const count = genderBase.filter(p => p.gender?.includes(gender)).length;
                       return (
                         <label key={gender} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
                           <input type="checkbox" checked={selectedGenders.includes(gender)} onChange={() => toggleGender(gender)} className="accent-[#1A1A1A]" />
@@ -301,7 +329,7 @@ export function ShopPage() {
                     <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Universities</h4>
                     <div className="space-y-2">
                       {universities.map(uni => {
-                        const count = products.filter(p => p.university === uni).length;
+                        const count = universityBase.filter(p => p.university === uni).length;
                         return (
                           <label key={uni} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
                             <input type="checkbox" checked={selectedUniversities.includes(uni)} onChange={() => toggleUniversity(uni)} className="accent-[#1A1A1A]" />
@@ -318,7 +346,7 @@ export function ShopPage() {
                   <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Categories</h4>
                   <div className="space-y-2">
                     {sortedClothingCategories.map(cat => {
-                      const count = products.filter(p => p.category === cat).length;
+                      const count = categoryBase.filter(p => p.category === cat).length;
                       const label = CATEGORY_LABELS[cat] || cat;
                       return (
                         <label key={cat} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
@@ -348,7 +376,7 @@ export function ShopPage() {
                               }}
                               className="accent-[#1A1A1A]"
                             />
-                            Accessories ({products.filter(p => ACCESSORY_CATEGORIES.includes(p.category)).length})
+                            Accessories ({categoryBase.filter(p => ACCESSORY_CATEGORIES.includes(p.category)).length})
                           </label>
                           <button
                             type="button"
@@ -361,7 +389,7 @@ export function ShopPage() {
                         {accessoriesOpen && (
                           <div className="mt-2 ml-4 space-y-2">
                             {accessorySubcategories.map(cat => {
-                              const count = products.filter(p => p.category === cat).length;
+                              const count = categoryBase.filter(p => p.category === cat).length;
                               return (
                                 <label key={cat} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
                                   <input type="checkbox" checked={selectedCategories.includes(cat)} onChange={() => toggleCategory(cat)} className="accent-[#1A1A1A]" />
@@ -382,7 +410,7 @@ export function ShopPage() {
                     <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Size</h4>
                     <div className="space-y-2">
                       {allSizes.map(size => {
-                        const count = products.filter(p => p.sizes?.includes(size)).length;
+                        const count = sizeBase.filter(p => p.sizes?.includes(size)).length;
                         return (
                           <label key={size} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
                             <input type="checkbox" checked={selectedSizes.includes(size)} onChange={() => toggleSize(size)} className="accent-[#1A1A1A]" />
@@ -400,11 +428,11 @@ export function ShopPage() {
                   <div className="space-y-2">
                     <label className="flex items-center gap-2 text-sm text-[#666] cursor-pointer">
                       <input type="checkbox" checked={selectedAvailability.includes('in')} onChange={() => setSelectedAvailability(prev => prev.includes('in') ? prev.filter(x => x !== 'in') : [...prev, 'in'])} className="accent-[#1A1A1A]" />
-                      In stock ({products.filter(p => p.inStock).length})
+                      In stock ({availBase.filter(p => p.inStock).length})
                     </label>
                     <label className="flex items-center gap-2 text-sm text-[#666] cursor-pointer">
                       <input type="checkbox" checked={selectedAvailability.includes('out')} onChange={() => setSelectedAvailability(prev => prev.includes('out') ? prev.filter(x => x !== 'out') : [...prev, 'out'])} className="accent-[#1A1A1A]" />
-                      Out of stock ({products.filter(p => !p.inStock).length})
+                      Out of stock ({availBase.filter(p => !p.inStock).length})
                     </label>
                   </div>
                 </div>
@@ -420,8 +448,8 @@ export function ShopPage() {
                   <input
                     type="range"
                     min={0}
-                    max={2000}
-                    value={priceRange[1]}
+                    max={maxPrice}
+                    value={Math.min(priceRange[1], maxPrice)}
                     onChange={e => setPriceRange([0, parseInt(e.target.value)])}
                     className="w-full accent-[#1A1A1A]"
                   />

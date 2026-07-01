@@ -169,7 +169,7 @@ export function CheckoutPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium">$15.00</span>
+                      <span className="text-sm font-medium">AED 15.00</span>
                       <input type="radio" name="shipping" checked={shippingMethod === 'express'} onChange={() => setShippingMethod('express')} className="accent-[#1A1A1A]" />
                     </div>
                   </label>
@@ -232,7 +232,7 @@ export function CheckoutPage() {
                   disabled={processing}
                   className="w-full bg-[#1A1A1A] text-white text-sm font-semibold uppercase tracking-[0.08em] py-4 hover:bg-[#333] transition-colors disabled:opacity-50"
                 >
-                  {processing ? 'Processing...' : `Place Order — $${total.toFixed(2)}`}
+                  {processing ? 'Processing...' : `Place Order — $AED {total.toFixed(2)}`}
                 </button>
               </div>
             )}
@@ -258,7 +258,7 @@ export function CheckoutPage() {
                       {item.color && <p className="text-xs text-[#999]">{item.color}</p>}
                       {item.size && <p className="text-xs text-[#999]">{item.size}</p>}
                     </div>
-                    <p className="text-sm font-medium">${((item.product.salePrice || item.product.price) * item.quantity).toFixed(2)}</p>
+                    <p className="text-sm font-medium">AED {((item.product.salePrice || item.product.price) * item.quantity).toFixed(2)}</p>
                   </div>
                 ))}
               </div>
@@ -284,25 +284,25 @@ export function CheckoutPage() {
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-sm">
                   <span className="text-[#666]">Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>AED {subtotal.toFixed(2)}</span>
                 </div>
                 {promoApplied && (
                   <div className="flex justify-between text-sm text-green-600">
                     <span>Discount (SAVE10)</span>
-                    <span>-${discount.toFixed(2)}</span>
+                    <span>-AED {discount.toFixed(2)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm">
                   <span className="text-[#666]">Shipping</span>
-                  <span>{shippingCost === 0 ? 'FREE' : `$${shippingCost.toFixed(2)}`}</span>
+                  <span>{shippingCost === 0 ? 'FREE' : `AED ${shippingCost.toFixed(2)}`}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-[#666]">Tax</span>
-                  <span>${tax.toFixed(2)}</span>
+                  <span>AED {tax.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between pt-3 border-t border-[#E5E5E5]">
                   <span className="font-bold">Total</span>
-                  <span className="font-bold text-xl">${total.toFixed(2)}</span>
+                  <span className="font-bold text-xl">AED {total.toFixed(2)}</span>
                 </div>
               </div>
 

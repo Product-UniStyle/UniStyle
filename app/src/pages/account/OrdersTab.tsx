@@ -146,7 +146,7 @@ export function OrdersTab({ orders }: { orders: Order[] }) {
                             <p className="text-sm font-medium">{item.name}</p>
                             <p className="text-xs text-[#999]">Qty: {item.quantity}</p>
                           </div>
-                          <p className="text-sm font-medium">${(item.price * item.quantity).toFixed(2)}</p>
+                          <p className="text-sm font-medium">AED {(item.price * item.quantity).toFixed(2)}</p>
                         </div>
                       ))}
                       <div className="flex justify-between pt-2 border-t border-[#E5E5E5]">

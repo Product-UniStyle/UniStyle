@@ -398,7 +398,7 @@ export function AccountPage() {
                           </div>
                           {product.university && <p className="text-xs text-[#999] truncate">{product.university}</p>}
                           <Link to={`/product/${product.slug}`} className="text-sm font-medium hover:underline truncate block">{product.name}</Link>
-                          <p className="text-sm font-semibold mt-0.5">${(product.salePrice ?? product.price).toFixed(2)}</p>
+                          <p className="text-sm font-semibold mt-0.5">AED {(product.salePrice ?? product.price).toFixed(2)}</p>
                         </div>
                       ))}
                     </div>
@@ -435,7 +435,7 @@ export function AccountPage() {
                         </div>
                         {product.university && <p className="text-xs text-[#999] truncate">{product.university}</p>}
                         <Link to={`/product/${product.slug}`} className="text-sm font-medium hover:underline truncate block">{product.name}</Link>
-                        <p className="text-sm font-semibold mt-0.5">${(product.salePrice ?? product.price).toFixed(2)}</p>
+                        <p className="text-sm font-semibold mt-0.5">AED {(product.salePrice ?? product.price).toFixed(2)}</p>
                       </div>
                     ))}
                   </div>

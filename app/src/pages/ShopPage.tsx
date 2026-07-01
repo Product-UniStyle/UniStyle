@@ -129,11 +129,11 @@ function ProductCard({ product }: { product: Product }) {
         <div className="flex items-center gap-2 mt-1">
           {product.salePrice ? (
             <>
-              <span className="text-sm font-semibold text-[#DC2626]">${product.salePrice.toFixed(2)}</span>
-              <span className="text-sm text-[#999] line-through">${product.price.toFixed(2)}</span>
+              <span className="text-sm font-semibold text-[#DC2626]">AED {product.salePrice.toFixed(2)}</span>
+              <span className="text-sm text-[#999] line-through">AED {product.price.toFixed(2)}</span>
             </>
           ) : (
-            <span className="text-sm font-semibold">${product.price.toFixed(2)}</span>
+            <span className="text-sm font-semibold">AED {product.price.toFixed(2)}</span>
           )}
         </div>
         <div className="flex items-center gap-1 mt-1">

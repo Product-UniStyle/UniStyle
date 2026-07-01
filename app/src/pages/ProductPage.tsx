@@ -16,7 +16,7 @@ function CollectionRow({ title, products }: { title: string; products: Product[]
 
   return (
     <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-10">
-      <h2 className="font-playfair text-2xl md:text-3xl font-normal tracking-widest uppercase mb-6">{title}</h2>
+      <h2 className="font-playfair text-2xl md:text-3xl font-bold tracking-normal uppercase mb-6">{title}</h2>
       <div className="relative">
         <div ref={scrollRef} className="flex gap-6 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {products.map(p => <CollectionCard key={p.id} product={p} />)}
@@ -24,7 +24,7 @@ function CollectionRow({ title, products }: { title: string; products: Product[]
         {products.length > 4 && (
           <button
             onClick={scrollNext}
-            className="hidden md:flex absolute right-0 top-1/3 -translate-y-1/2 w-9 h-9 rounded-full bg-white shadow items-center justify-center"
+            className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white border border-[#1A1A1A] shadow items-center justify-center"
             aria-label="Show more"
           >
             <ChevronRight size={18} />
@@ -38,12 +38,41 @@ function CollectionRow({ title, products }: { title: string; products: Product[]
 function CollectionCard({ product }: { product: Product }) {
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const inWishlist = isInWishlist(product.id);
+  const [imgIndex, setImgIndex] = useState(0);
+  const cycleRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   return (
-    <div className="shrink-0 w-[calc(50%-12px)] md:w-[calc(25%-18px)]">
+    <div className="group shrink-0 w-[calc(50%-12px)] md:w-[calc(25%-18px)]">
       <div className="relative bg-white overflow-hidden">
-        <Link to={`/product/${product.slug}`}>
-          <img src={product.images[0]} alt={product.name} className="w-full aspect-square object-cover" />
+        <Link
+          to={`/product/${product.slug}`}
+          className="block relative aspect-square overflow-hidden"
+          onMouseEnter={() => {
+            if (product.images.length < 2) return;
+            cycleRef.current = setInterval(() => {
+              setImgIndex(prev => (prev + 1) % product.images.length);
+            }, 1200);
+          }}
+          onMouseLeave={() => {
+            if (cycleRef.current) clearInterval(cycleRef.current);
+            setImgIndex(0);
+          }}
+        >
+          {product.images.map((src, i) => (
+            <img
+              key={i}
+              src={src}
+              alt={product.name}
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${i === imgIndex ? 'opacity-100' : 'opacity-0'}`}
+            />
+          ))}
+          {product.images.length > 1 && (
+            <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              {product.images.map((_, i) => (
+                <span key={i} className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${i === imgIndex ? 'bg-white scale-125' : 'bg-white/50'}`} />
+              ))}
+            </div>
+          )}
         </Link>
         <button
           onClick={() => {
@@ -286,7 +315,7 @@ export function ProductPage() {
           {/* Info */}
           <div className="product-info-col">
             <div className="flex items-start justify-between gap-4 mb-3">
-              <h1 className="font-playfair text-2xl md:text-3xl font-normal tracking-widest">{product.name}</h1>
+              <h1 className="font-playfair text-2xl md:text-3xl font-bold tracking-normal">{product.name}</h1>
               <div className="flex items-center gap-3 text-[#666] shrink-0 pt-2">
                 <button
                   onClick={() => {
@@ -306,11 +335,11 @@ export function ProductPage() {
             <div className="flex items-center gap-3 mb-4">
               {product.salePrice ? (
                 <>
-                  <span className="text-2xl font-bold text-[#DC2626]">${product.salePrice.toFixed(2)}</span>
-                  <span className="text-lg text-[#999] line-through">${product.price.toFixed(2)}</span>
+                  <span className="text-2xl font-bold text-[#DC2626]">AED {product.salePrice.toFixed(2)}</span>
+                  <span className="text-lg text-[#999] line-through">AED {product.price.toFixed(2)}</span>
                 </>
               ) : (
-                <span className="text-2xl font-bold">${product.price.toFixed(2)}</span>
+                <span className="text-2xl font-bold">AED {product.price.toFixed(2)}</span>
               )}
             </div>
             {/* Rating */}
@@ -398,21 +427,21 @@ export function ProductPage() {
               </div>
             )}
 
-            {/* Add to Cart + Buy Now */}
-            <div className="flex gap-3 mb-6">
-              <button
-                onClick={handleAddToCart}
-                className="flex-1 flex items-center justify-center gap-2 bg-[#1A1A1A] text-white text-sm font-semibold uppercase tracking-wider py-3.5 hover:bg-[#333] transition-colors"
-              >
-                <ShoppingBag size={16} /> Add to Cart
-              </button>
-              <button
-                onClick={handleBuyNow}
-                className="flex-1 bg-white text-[#1A1A1A] border border-[#1A1A1A] text-sm font-semibold uppercase tracking-wider py-3.5 hover:bg-[#1A1A1A] hover:text-white transition-colors"
-              >
-                Buy Now
-              </button>
-            </div>
+            {/* Add to Cart */}
+            <button
+              onClick={handleAddToCart}
+              className="w-full flex items-center justify-center gap-2 bg-[#1A1A1A] text-white text-sm font-semibold uppercase tracking-wider py-3.5 hover:bg-[#333] transition-colors mb-3"
+            >
+              <ShoppingBag size={16} /> Add to Cart
+            </button>
+
+            {/* Buy Now */}
+            <button
+              onClick={handleBuyNow}
+              className="w-full bg-white text-[#1A1A1A] border border-[#1A1A1A] text-sm font-semibold uppercase tracking-wider py-3.5 hover:bg-[#1A1A1A] hover:text-white transition-colors mb-6"
+            >
+              Buy Now
+            </button>
 
             {/* Trust badges */}
             <div className="grid grid-cols-4 gap-2 border border-[#E5E5E5] rounded-lg p-4 bg-[#FAFAFA]">
@@ -434,7 +463,7 @@ export function ProductPage() {
         {/* Reviews Section */}
         <div className="mt-16 border-t border-[#E5E5E5] pt-10">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="font-playfair text-2xl font-normal tracking-widest uppercase">Customer Reviews</h2>
+            <h2 className="font-playfair text-2xl md:text-3xl font-bold tracking-normal uppercase">Customer Reviews</h2>
             <span className="text-sm text-[#999]">{reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}</span>
           </div>
 
@@ -529,12 +558,14 @@ export function ProductPage() {
       </div>
 
       {/* Complete the Collection */}
-      <CollectionRow title="Complete the Collection" products={completeCollection} />
+      <div className="pt-12">
+        <CollectionRow title="Complete the Collection" products={completeCollection} />
+      </div>
 
       {/* You May Also Like */}
-      {/* <div className="bg-[#F5F5F5]"> */}
+      <div className="pt-12">
         <CollectionRow title="You May Also Like" products={youMayAlsoLike} />
-      {/* </div> */}
+      </div>
 
       {/* Zoom Modal */}
       {zoomOpen && (

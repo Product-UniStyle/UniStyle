@@ -8,10 +8,9 @@ import type { Product } from '@/data/products';
 
 function HeroSection() {
   return (
-    <section className="relative w-full h-[600px] md:h-[700px] lg:h-[85vh] overflow-hidden mt-[72px]">
+    <section className="relative w-full h-[calc(100vh-72px)] overflow-hidden mt-[72px]">
       <div className="absolute inset-0">
-        <img src="/hero-img.jpeg" alt="University merchandise" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#F0EDE8]/90 via-[#F0EDE8]/50 to-transparent" />
+        <img src="/hero-img.png" alt="University merchandise" className="w-full h-full object-cover" />
       </div>
       <div className="relative z-10 h-full flex items-center max-w-[1440px] mx-auto px-6 lg:px-12">
         <div className="max-w-[600px]">
@@ -41,16 +40,16 @@ const categoryTiles = [
 
 function CategoriesSection() {
   return (
-    <section className="py-20 md:py-28">
+    <section className="pt-12 md:pt-16 pb-20 md:pb-28">
       <div className="max-w-[1440px] mx-auto px-6 lg:px-12">
-        <div className="relative inline-block w-full text-center mb-16">
+        <div className="relative inline-block w-full text-center mb-24">
           <h2 className="font-playfair text-5xl md:text-6xl lg:text-7xl font-normal tracking-widest text-[#1B2A6B] relative z-10">CATEGORIES</h2>
           <img src="/highlight.png" alt="" className="absolute left-[49%] -translate-x-1/2 bottom-0 translate-y-[53%] w-[68%] object-contain pointer-events-none" />
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
           {categoryTiles.map(c => (
             <Link key={c.name} to={`/shop?category=${c.name}`} className="group block text-center">
-              <div className="bg-[#F5F5F5] overflow-hidden mb-3">
+              <div className="bg-[#F5F5F5] overflow-hidden mb-6">
                 <img
                   src={c.image}
                   alt={c.name}
@@ -168,17 +167,17 @@ function ProductTile({ product }: { product: Product }) {
         </div>
       </div>
       <div className="mt-3 text-center">
-        <Link to={`/product/${product.slug}`} className="text-sm font-medium text-[#1A1A1A] hover:underline">
+        <Link to={`/product/${product.slug}`} className="text-base font-medium text-[#1A1A1A] hover:underline">
           {product.name}
         </Link>
         <div className="mt-1">
           {product.salePrice ? (
             <>
-              <span className="text-sm font-semibold mr-2">${product.salePrice.toFixed(2)}</span>
-              <span className="text-sm text-[#999] line-through">${product.price.toFixed(2)}</span>
+              <span className="text-sm font-semibold mr-2">AED {product.salePrice.toFixed(2)}</span>
+              <span className="text-sm text-[#999] line-through">AED {product.price.toFixed(2)}</span>
             </>
           ) : (
-            <span className="text-sm font-semibold">${product.price.toFixed(2)}</span>
+            <span className="text-sm font-semibold">AED {product.price.toFixed(2)}</span>
           )}
         </div>
       </div>
@@ -191,9 +190,9 @@ function BestSellersSection() {
   const bestSellers = products.slice(0, 6);
 
   return (
-    <section className="py-20 md:py-28">
+    <section className="pt-12 md:pt-16 pb-20 md:pb-28">
       <div className="max-w-[1440px] mx-auto px-6 lg:px-12">
-        <div className="relative inline-block w-full text-center mb-16">
+        <div className="relative inline-block w-full text-center mb-24">
           <h2 className="font-playfair text-5xl md:text-6xl lg:text-7xl font-normal tracking-widest text-[#1B2A6B] relative z-10">BEST SELLERS</h2>
           <img src="/highlight.png" alt="" className="absolute left-[49%] -translate-x-1/2 bottom-0 translate-y-[53%] w-[77%] object-contain pointer-events-none" />
         </div>
@@ -221,7 +220,7 @@ function UniversitiesSection() {
         <h2 className="font-playfair text-4xl md:text-5xl lg:text-6xl font-normal text-center text-[#1B2A6B] tracking-widest mb-12">
           SEARCH BY<br />OUR TOP UNIVERSITIES!
         </h2>
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-6">
+        <div className="grid grid-cols-3 gap-6">
           {universities.map(u => (
             <Link
               key={u.name}

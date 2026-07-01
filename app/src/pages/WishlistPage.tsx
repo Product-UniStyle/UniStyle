@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, ShoppingBag, Trash2, ChevronDown, Filter, ChevronRight, X } from 'lucide-react';
 import type { Product } from '@/data/products';
@@ -54,11 +54,11 @@ function WishlistCard({ product }: { product: Product }) {
         <div className="flex items-center gap-2 mt-1">
           {product.salePrice ? (
             <>
-              <span className="text-sm font-semibold text-[#DC2626]">${product.salePrice.toFixed(2)}</span>
-              <span className="text-sm text-[#999] line-through">${product.price.toFixed(2)}</span>
+              <span className="text-sm font-semibold text-[#DC2626]">AED {product.salePrice.toFixed(2)}</span>
+              <span className="text-sm text-[#999] line-through">AED {product.price.toFixed(2)}</span>
             </>
           ) : (
-            <span className="text-sm font-semibold">${product.price.toFixed(2)}</span>
+            <span className="text-sm font-semibold">AED {product.price.toFixed(2)}</span>
           )}
         </div>
       </div>
@@ -69,16 +69,41 @@ function WishlistCard({ product }: { product: Product }) {
 function RecommendedCard({ product }: { product: Product }) {
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const inWishlist = isInWishlist(product.id);
+  const [imgIndex, setImgIndex] = useState(0);
+  const cycleRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   return (
     <div className="group">
       <div className="relative bg-[#F5F5F5] overflow-hidden">
-        <Link to={`/product/${product.slug}`}>
-          <img
-            src={product.images[0]}
-            alt={product.name}
-            className="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-500"
-          />
+        <Link
+          to={`/product/${product.slug}`}
+          className="block relative aspect-square overflow-hidden"
+          onMouseEnter={() => {
+            if (product.images.length < 2) return;
+            cycleRef.current = setInterval(() => {
+              setImgIndex(prev => (prev + 1) % product.images.length);
+            }, 1200);
+          }}
+          onMouseLeave={() => {
+            if (cycleRef.current) clearInterval(cycleRef.current);
+            setImgIndex(0);
+          }}
+        >
+          {product.images.map((src, i) => (
+            <img
+              key={i}
+              src={src}
+              alt={product.name}
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${i === imgIndex ? 'opacity-100' : 'opacity-0'}`}
+            />
+          ))}
+          {product.images.length > 1 && (
+            <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              {product.images.map((_, i) => (
+                <span key={i} className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${i === imgIndex ? 'bg-white scale-125' : 'bg-white/50'}`} />
+              ))}
+            </div>
+          )}
         </Link>
         <button
           onClick={() => {
@@ -97,11 +122,11 @@ function RecommendedCard({ product }: { product: Product }) {
         <div className="flex items-center gap-2 mt-1">
           {product.salePrice ? (
             <>
-              <span className="text-sm font-semibold text-[#DC2626]">${product.salePrice.toFixed(2)}</span>
-              <span className="text-sm text-[#999] line-through">${product.price.toFixed(2)}</span>
+              <span className="text-sm font-semibold text-[#DC2626]">AED {product.salePrice.toFixed(2)}</span>
+              <span className="text-sm text-[#999] line-through">AED {product.price.toFixed(2)}</span>
             </>
           ) : (
-            <span className="text-sm font-semibold">${product.price.toFixed(2)}</span>
+            <span className="text-sm font-semibold">AED {product.price.toFixed(2)}</span>
           )}
         </div>
       </div>
@@ -397,9 +422,9 @@ export function WishlistPage() {
 
               {/* You May Also Like */}
               {recommended.length > 0 && (
-                <div className="mt-20">
+                <div className="mt-20 pt-12">
                   <div className="flex items-center justify-between mb-8">
-                    <h2 className="font-playfair text-2xl font-normal tracking-widest uppercase">You May Also Like</h2>
+                    <h2 className="font-playfair text-2xl md:text-3xl font-bold tracking-normal uppercase">You May Also Like</h2>
                     <Link to="/shop" className="flex items-center gap-2 text-sm font-medium hover:underline">
                       View All
                       <ChevronRight size={16} />

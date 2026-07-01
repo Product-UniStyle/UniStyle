@@ -53,7 +53,7 @@ function YouMayAlsoLike() {
                 {product.name}
               </Link>
               <p className="text-sm font-semibold mb-3">
-                ${(product.salePrice ?? product.price).toFixed(2)}
+                AED {(product.salePrice ?? product.price).toFixed(2)}
               </p>
               <button
                 onClick={() => { addToCart(product); showToast('Added to cart'); }}

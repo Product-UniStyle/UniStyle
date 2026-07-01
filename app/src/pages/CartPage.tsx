@@ -15,7 +15,7 @@ function YouMayAlsoLike() {
 
   return (
     <div className="border border-[#E5E5E5] p-6">
-      <h3 className="text-sm font-bold uppercase tracking-wider mb-5">You May Also Like</h3>
+      <h3 className="font-playfair text-sm font-normal tracking-widest uppercase mb-5">You May Also Like</h3>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {suggestions.map(product => {
           const inWishlist = isInWishlist(product.id);
@@ -77,7 +77,7 @@ export function CartPage() {
     return (
       <div className="mt-[72px] min-h-[60vh]">
         <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-12">
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-10 text-center">SHOPPING CART</h1>
+          <h1 className="font-playfair text-2xl md:text-3xl font-normal tracking-widest mb-10 text-center">SHOPPING CART</h1>
 
           {/* Empty message */}
           <div className="text-center py-10 mb-10">
@@ -150,7 +150,7 @@ export function CartPage() {
       <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-12">
         {/* Title + item count */}
         <div className="text-center mb-10">
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">SHOPPING CART</h1>
+          <h1 className="font-playfair text-2xl md:text-3xl font-normal tracking-widest">SHOPPING CART</h1>
           <p className="text-sm text-[#999] mt-1">{items.length} {items.length === 1 ? 'Item' : 'Items'}</p>
         </div>
 

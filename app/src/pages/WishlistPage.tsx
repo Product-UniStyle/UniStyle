@@ -218,7 +218,7 @@ export function WishlistPage() {
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-4 mb-2">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Wishlist ({items.length})</h1>
+            <h1 className="font-playfair text-3xl md:text-4xl font-normal uppercase">Wishlist ({items.length})</h1>
             <p className="text-sm text-[#666] mt-2">
               <Link to="/" className="hover:text-[#1A1A1A]">Home</Link> / Wishlist
             </p>
@@ -399,7 +399,7 @@ export function WishlistPage() {
               {recommended.length > 0 && (
                 <div className="mt-20">
                   <div className="flex items-center justify-between mb-8">
-                    <h2 className="text-2xl font-bold tracking-tight">You May Also Like</h2>
+                    <h2 className="font-playfair text-2xl font-normal tracking-widest uppercase">You May Also Like</h2>
                     <Link to="/shop" className="flex items-center gap-2 text-sm font-medium hover:underline">
                       View All
                       <ChevronRight size={16} />

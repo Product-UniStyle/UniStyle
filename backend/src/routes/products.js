@@ -9,7 +9,7 @@ import { requireAdmin, requireEditorOrAdmin } from '../middleware/auth.js';
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-const colorSchema = z.object({ name: z.string().min(1), hex: z.string().min(1) });
+const colorSchema = z.object({ name: z.string().min(1), hex: z.string().min(1), images: z.array(z.string()).default([]) });
 
 const productSchema = z.object({
   name: z.string().min(1),

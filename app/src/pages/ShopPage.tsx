@@ -37,6 +37,8 @@ function ProductCard({ product }: { product: Product }) {
   const inWishlist = isInWishlist(product.id);
   const hasCountdown = !!product.countdownEnd;
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
+  const [imgIndex, setImgIndex] = useState(0);
+  const cycleRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!hasCountdown) return;
@@ -59,12 +61,35 @@ function ProductCard({ product }: { product: Product }) {
   return (
     <div className="group">
       <div className="relative bg-[#F5F5F5] overflow-hidden">
-        <Link to={`/product/${product.slug}`}>
-          <img
-            src={product.images[0]}
-            alt={product.name}
-            className="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-500"
-          />
+        <Link
+          to={`/product/${product.slug}`}
+          className="block relative aspect-square overflow-hidden"
+          onMouseEnter={() => {
+            if (product.images.length < 2) return;
+            cycleRef.current = setInterval(() => {
+              setImgIndex(prev => (prev + 1) % product.images.length);
+            }, 1200);
+          }}
+          onMouseLeave={() => {
+            if (cycleRef.current) clearInterval(cycleRef.current);
+            setImgIndex(0);
+          }}
+        >
+          {product.images.map((src, i) => (
+            <img
+              key={i}
+              src={src}
+              alt={product.name}
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${i === imgIndex ? 'opacity-100' : 'opacity-0'}`}
+            />
+          ))}
+          {product.images.length > 1 && (
+            <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              {product.images.map((_, i) => (
+                <span key={i} className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${i === imgIndex ? 'bg-white scale-125' : 'bg-white/50'}`} />
+              ))}
+            </div>
+          )}
         </Link>
         {product.badge && (
           <span className="absolute top-3 left-3 bg-[#1A1A1A] text-white text-[11px] font-medium px-2 py-1">{product.badge}</span>
@@ -111,16 +136,20 @@ function ProductCard({ product }: { product: Product }) {
             <span className="text-sm font-semibold">${product.price.toFixed(2)}</span>
           )}
         </div>
-        {product.rating && (
-          <div className="flex items-center gap-1 mt-1">
-            <div className="flex">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <svg key={i} width="12" height="12" viewBox="0 0 24 24" fill={i < Math.round(product.rating!) ? '#1A1A1A' : '#E5E5E5'}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              ))}
-            </div>
-            <span className="text-xs text-[#999]">({product.reviewCount})</span>
-          </div>
-        )}
+        <div className="flex items-center gap-1 mt-1">
+          {product.rating ? (
+            <>
+              <div className="flex">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <svg key={i} width="12" height="12" viewBox="0 0 24 24" fill={i < Math.round(product.rating!) ? '#1A1A1A' : '#E5E5E5'}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                ))}
+              </div>
+              <span className="text-xs text-[#999]">({product.reviewCount})</span>
+            </>
+          ) : (
+            <span className="text-xs text-[#999]">No reviews yet</span>
+          )}
+        </div>
       </div>
     </div>
   );

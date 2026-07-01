@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { categories } from '@/data/products';
 import type { AdminProductInput, BackendProduct } from '@/lib/api';
+import { ImageUploader } from './ImageUploader';
 
 function toCommaList(values: string[]) {
   return values.join(', ');
@@ -16,20 +18,10 @@ function fromCommaList(text: string) {
   return text.split(',').map((v) => v.trim()).filter(Boolean);
 }
 
-function toColorsText(colors: { name: string; hex: string }[]) {
-  return colors.map((c) => `${c.name}:${c.hex}`).join(', ');
-}
-
-function fromColorsText(text: string) {
-  return text
-    .split(',')
-    .map((pair) => pair.trim())
-    .filter(Boolean)
-    .map((pair) => {
-      const [name, hex] = pair.split(':').map((s) => s.trim());
-      return { name, hex };
-    })
-    .filter((c) => c.name && c.hex);
+interface ColorEntry {
+  name: string;
+  hex: string;
+  images: string[];
 }
 
 interface Props {
@@ -48,14 +40,28 @@ export function AdminProductForm({ initial, onSubmit, onCancel }: Props) {
   const toggleGender = (g: 'men' | 'women') =>
     setGender(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]);
   const [university, setUniversity] = useState(initial?.university ?? '');
-  const [images, setImages] = useState(toCommaList(initial?.images ?? []));
+  const [images, setImages] = useState<string[]>(initial?.images ?? []);
   const [sizes, setSizes] = useState(toCommaList(initial?.sizes ?? []));
-  const [colors, setColors] = useState(toColorsText(initial?.colors ?? []));
+  const [colorList, setColorList] = useState<ColorEntry[]>(
+    initial?.colors?.map(c => ({ name: c.name, hex: c.hex, images: c.images ?? [] })) ?? []
+  );
   const [stock, setStock] = useState(initial?.stock?.toString() ?? '0');
   const [featured, setFeatured] = useState(initial?.featured ?? false);
   const [badge, setBadge] = useState(initial?.badge ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const addColor = () =>
+    setColorList(prev => [...prev, { name: '', hex: '#000000', images: [] }]);
+
+  const removeColor = (i: number) =>
+    setColorList(prev => prev.filter((_, idx) => idx !== i));
+
+  const updateColorField = (i: number, field: 'name' | 'hex', value: string) =>
+    setColorList(prev => prev.map((c, idx) => idx === i ? { ...c, [field]: value } : c));
+
+  const updateColorImages = (i: number, imgs: string[]) =>
+    setColorList(prev => prev.map((c, idx) => idx === i ? { ...c, images: imgs } : c));
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -70,9 +76,9 @@ export function AdminProductForm({ initial, onSubmit, onCancel }: Props) {
         category,
         gender,
         university: university || undefined,
-        images: fromCommaList(images),
+        images,
         sizes: fromCommaList(sizes),
-        colors: fromColorsText(colors),
+        colors: colorList.filter(c => c.name.trim() && c.hex.trim()),
         stock: Number(stock) || 0,
         featured,
         badge: badge || undefined,
@@ -85,7 +91,7 @@ export function AdminProductForm({ initial, onSubmit, onCancel }: Props) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+    <form onSubmit={handleSubmit} className="space-y-5 max-h-[70vh] overflow-y-auto pr-1">
       <div className="space-y-2">
         <Label htmlFor="name">Name</Label>
         <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
@@ -140,11 +146,6 @@ export function AdminProductForm({ initial, onSubmit, onCancel }: Props) {
         <Input id="university" value={university} onChange={(e) => setUniversity(e.target.value)} placeholder="e.g. University of Birmingham" />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="images">Image URLs (comma separated)</Label>
-        <Textarea id="images" value={images} onChange={(e) => setImages(e.target.value)} rows={2} placeholder="https://...jpg, https://...jpg" />
-      </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="sizes">Sizes (comma separated)</Label>
@@ -156,9 +157,94 @@ export function AdminProductForm({ initial, onSubmit, onCancel }: Props) {
         </div>
       </div>
 
+      {/* Default Images — shown when no color is selected */}
       <div className="space-y-2">
-        <Label htmlFor="colors">Colors (name:hex, comma separated)</Label>
-        <Input id="colors" value={colors} onChange={(e) => setColors(e.target.value)} placeholder="Black:#1A1A1A, Grey:#999999" />
+        <Label>Default Images</Label>
+        <p className="text-xs text-[#999]">Shown on product pages when no specific color is selected, or for products without color variants.</p>
+        <ImageUploader images={images} onChange={setImages} />
+      </div>
+
+      {/* Colors with per-color image uploaders */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <Label>Colors & Images</Label>
+            <p className="text-xs text-[#999] mt-0.5">Each color shows its own images when selected by the customer.</p>
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={addColor} className="flex items-center gap-1.5 shrink-0">
+            <Plus size={14} /> Add Color
+          </Button>
+        </div>
+
+        {colorList.length === 0 && (
+          <div className="border border-dashed border-[#E5E5E5] rounded-lg py-6 text-center text-sm text-[#999]">
+            No colors added yet. Click "Add Color" to get started.
+          </div>
+        )}
+
+        {colorList.map((color, i) => (
+          <div key={i} className="border border-[#E5E5E5] rounded-lg overflow-hidden">
+            {/* Color header */}
+            <div className="flex items-center gap-3 px-4 py-3 bg-[#FAFAFA] border-b border-[#E5E5E5]">
+              {/* Color swatch preview */}
+              <div
+                className="w-7 h-7 rounded-full border border-[#E5E5E5] shrink-0 shadow-sm"
+                style={{ backgroundColor: color.hex }}
+              />
+              <Input
+                placeholder="Color name (e.g. Black, White, Navy)"
+                value={color.name}
+                onChange={e => updateColorField(i, 'name', e.target.value)}
+                className="flex-1 h-8 text-sm"
+              />
+              <div className="flex items-center gap-2 shrink-0">
+                <label className="text-xs text-[#666]">Hex</label>
+                <input
+                  type="color"
+                  value={color.hex}
+                  onChange={e => updateColorField(i, 'hex', e.target.value)}
+                  className="w-8 h-8 rounded cursor-pointer border border-[#E5E5E5] p-0.5 bg-white"
+                  title="Pick color"
+                />
+                <Input
+                  value={color.hex}
+                  onChange={e => updateColorField(i, 'hex', e.target.value)}
+                  className="w-24 h-8 text-xs font-mono"
+                  placeholder="#000000"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => removeColor(i)}
+                className="text-[#999] hover:text-red-500 transition-colors shrink-0"
+                title="Remove color"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Per-color image uploader */}
+            <div className="p-4 space-y-2">
+              <p className="text-xs font-medium text-[#555]">
+                Images for{' '}
+                <span
+                  className="inline-flex items-center gap-1.5 font-semibold"
+                  style={{ color: color.hex === '#ffffff' || color.hex === '#FFFFFF' ? '#1A1A1A' : color.hex }}
+                >
+                  <span
+                    className="inline-block w-3 h-3 rounded-full border border-[#E5E5E5]"
+                    style={{ backgroundColor: color.hex }}
+                  />
+                  {color.name || 'this color'}
+                </span>
+                {color.images.length > 0 && (
+                  <span className="text-[#999] font-normal ml-1">({color.images.length} uploaded)</span>
+                )}
+              </p>
+              <ImageUploader images={color.images} onChange={imgs => updateColorImages(i, imgs)} />
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="flex items-center gap-2">

@@ -63,7 +63,7 @@ export function BlogPostPage() {
       {relatedPosts.length > 0 && (
         <div className="bg-[#F5F5F5] py-16">
           <div className="max-w-[800px] mx-auto px-6">
-            <h2 className="text-2xl font-bold tracking-tight mb-8">Related Articles</h2>
+            <h2 className="font-playfair text-2xl font-normal tracking-widest uppercase mb-8">Related Articles</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {relatedPosts.map(rp => (
                 <article key={rp.id} className="group">

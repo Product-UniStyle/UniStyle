@@ -172,6 +172,12 @@ export const api = {
   adminLogin: (data: { email: string; password: string }) =>
     adminRequest<{ token: string; role: 'admin' | 'editor' }>('/admin/login', { method: 'POST', body: JSON.stringify(data) }),
 
+  getUploadUrl: (contentType: string, size: number) =>
+    adminRequest<{ uploadUrl: string; publicUrl: string }>('/admin/upload-url', {
+      method: 'POST',
+      body: JSON.stringify({ contentType, size }),
+    }),
+
   getAdminUsers: () =>
     adminRequest<{ users: BackendStaffUser[] }>('/admin/users'),
 
@@ -263,7 +269,7 @@ export interface BackendProduct {
   gender?: ('men' | 'women')[];
   images: string[];
   sizes: string[];
-  colors: { name: string; hex: string }[];
+  colors: { name: string; hex: string; images?: string[] }[];
   stock: number;
   featured: boolean;
   rating?: number;
@@ -329,7 +335,7 @@ export interface AdminProductInput {
   gender?: ('men' | 'women')[];
   images: string[];
   sizes: string[];
-  colors: { name: string; hex: string }[];
+  colors: { name: string; hex: string; images: string[] }[];
   stock: number;
   featured: boolean;
   rating?: number;

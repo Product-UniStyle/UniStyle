@@ -16,7 +16,7 @@ function CollectionRow({ title, products }: { title: string; products: Product[]
 
   return (
     <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-10">
-      <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-6">{title}</h2>
+      <h2 className="font-playfair text-2xl md:text-3xl font-normal tracking-widest uppercase mb-6">{title}</h2>
       <div className="relative">
         <div ref={scrollRef} className="flex gap-6 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {products.map(p => <CollectionCard key={p.id} product={p} />)}
@@ -175,6 +175,14 @@ export function ProductPage() {
     return () => ctx.revert();
   }, [product]);
 
+  const displayImages = (() => {
+    if (selectedColor && product?.colors) {
+      const colorObj = product.colors.find(c => c.name === selectedColor);
+      if (colorObj?.images && colorObj.images.length > 0) return colorObj.images;
+    }
+    return product?.images ?? [];
+  })();
+
   if (loading) {
     return (
       <div className="mt-[72px] text-center py-20">
@@ -230,16 +238,40 @@ export function ProductPage() {
           {/* Images */}
           <div>
             <div className="relative bg-[#E5E2E1] overflow-hidden mb-4 cursor-zoom-in max-h-[55vh] lg:max-h-[60vh]" onClick={() => setZoomOpen(true)}>
-              <img src={product.images[mainImage]} alt={product.name} className="w-full h-[55vh] lg:h-[60vh] object-contain p-6" />
+              <img src={displayImages[mainImage]} alt={product.name} className="w-full h-[55vh] lg:h-[60vh] object-contain p-6" />
               {product.badge && (
                 <span className="absolute top-4 right-4 bg-[#1A1A1A] text-white text-xs font-medium px-3 py-1.5">{product.badge}</span>
               )}
-              <span className="absolute top-4 left-4 w-9 h-9 rounded-full bg-white flex items-center justify-center shadow">
-                <Search size={16} />
-              </span>
+              {displayImages.length > 1 && (
+                <>
+                  <button
+                    onClick={e => { e.stopPropagation(); setMainImage(i => (i - 1 + displayImages.length) % displayImages.length); }}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow transition-colors"
+                    aria-label="Previous image"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <button
+                    onClick={e => { e.stopPropagation(); setMainImage(i => (i + 1) % displayImages.length); }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow transition-colors"
+                    aria-label="Next image"
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                  <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
+                    {displayImages.map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={e => { e.stopPropagation(); setMainImage(i); }}
+                        className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${i === mainImage ? 'bg-[#1A1A1A] scale-125' : 'bg-[#1A1A1A]/30'}`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
             <div className="grid grid-cols-4 gap-2">
-              {product.images.map((img, i) => (
+              {displayImages.map((img, i) => (
                 <button
                   key={i}
                   onClick={() => setMainImage(i)}
@@ -253,7 +285,24 @@ export function ProductPage() {
 
           {/* Info */}
           <div className="product-info-col">
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-3">{product.name}</h1>
+            <div className="flex items-start justify-between gap-4 mb-3">
+              <h1 className="font-playfair text-2xl md:text-3xl font-normal tracking-widest">{product.name}</h1>
+              <div className="flex items-center gap-3 text-[#666] shrink-0 pt-2">
+                <button
+                  onClick={() => {
+                    if (inWishlist) { removeFromWishlist(product.id); showToast('Removed from wishlist'); }
+                    else { addToWishlist(product); showToast('Added to wishlist'); }
+                  }}
+                  className="hover:text-[#1A1A1A] transition-colors"
+                  title={inWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                >
+                  <Heart size={20} fill={inWishlist ? 'currentColor' : 'none'} />
+                </button>
+                <button className="hover:text-[#1A1A1A] transition-colors" title="Share">
+                  <Share2 size={20} />
+                </button>
+              </div>
+            </div>
             <div className="flex items-center gap-3 mb-4">
               {product.salePrice ? (
                 <>
@@ -318,7 +367,7 @@ export function ProductPage() {
                   {product.colors.map(c => (
                     <button
                       key={c.name}
-                      onClick={() => setSelectedColor(c.name)}
+                      onClick={() => { setSelectedColor(c.name); setMainImage(0); }}
                       className={`w-8 h-8 rounded-full border-2 transition-all ${selectedColor === c.name ? 'border-[#1A1A1A] ring-2 ring-[#1A1A1A] ring-offset-2' : 'border-[#E5E5E5]'}`}
                       style={{ backgroundColor: c.hex }}
                       title={c.name}
@@ -349,35 +398,19 @@ export function ProductPage() {
               </div>
             )}
 
-            {/* Add to Cart */}
-            <button
-              onClick={handleAddToCart}
-              className="w-full flex items-center justify-center gap-2 bg-[#1A1A1A] text-white text-sm font-semibold uppercase tracking-wider py-3.5 hover:bg-[#333] transition-colors mb-3"
-            >
-              <ShoppingBag size={16} /> Add to Cart
-            </button>
-
-            {/* Buy Now */}
-            <button
-              onClick={handleBuyNow}
-              className="w-full bg-white text-[#1A1A1A] border border-[#1A1A1A] text-sm font-semibold uppercase tracking-wider py-3.5 hover:bg-[#1A1A1A] hover:text-white transition-colors mb-6"
-            >
-              Buy Now
-            </button>
-
-            {/* Wishlist / Share */}
-            <div className="flex items-center justify-between text-sm text-[#666] mb-8">
+            {/* Add to Cart + Buy Now */}
+            <div className="flex gap-3 mb-6">
               <button
-                onClick={() => {
-                  if (inWishlist) { removeFromWishlist(product.id); showToast('Removed from wishlist'); }
-                  else { addToWishlist(product); showToast('Added to wishlist'); }
-                }}
-                className="flex items-center gap-1.5 hover:text-[#1A1A1A]"
+                onClick={handleAddToCart}
+                className="flex-1 flex items-center justify-center gap-2 bg-[#1A1A1A] text-white text-sm font-semibold uppercase tracking-wider py-3.5 hover:bg-[#333] transition-colors"
               >
-                <Heart size={16} fill={inWishlist ? 'currentColor' : 'none'} /> {inWishlist ? 'In Wishlist' : 'Add to Wishlist'}
+                <ShoppingBag size={16} /> Add to Cart
               </button>
-              <button className="flex items-center gap-1.5 hover:text-[#1A1A1A]">
-                <Share2 size={16} /> Share
+              <button
+                onClick={handleBuyNow}
+                className="flex-1 bg-white text-[#1A1A1A] border border-[#1A1A1A] text-sm font-semibold uppercase tracking-wider py-3.5 hover:bg-[#1A1A1A] hover:text-white transition-colors"
+              >
+                Buy Now
               </button>
             </div>
 
@@ -401,7 +434,7 @@ export function ProductPage() {
         {/* Reviews Section */}
         <div className="mt-16 border-t border-[#E5E5E5] pt-10">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-bold tracking-tight">Customer Reviews</h2>
+            <h2 className="font-playfair text-2xl font-normal tracking-widest uppercase">Customer Reviews</h2>
             <span className="text-sm text-[#999]">{reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}</span>
           </div>
 
@@ -506,7 +539,7 @@ export function ProductPage() {
       {/* Zoom Modal */}
       {zoomOpen && (
         <ZoomLightbox
-          images={product.images}
+          images={displayImages}
           name={product.name}
           current={mainImage}
           onChange={setMainImage}

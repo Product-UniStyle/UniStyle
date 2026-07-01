@@ -2,9 +2,10 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
-import User from '../models/User.js';
-import { requireAdmin } from '../middleware/auth.js';
+import StaffUser from '../models/StaffUser.js';
+import { requireAdmin, requireEditorOrAdmin } from '../middleware/auth.js';
 import { sendStaffCredentials } from '../lib/mailer.js';
+import { createPresignedUploadUrl } from '../lib/s3.js';
 
 const router = Router();
 
@@ -30,7 +31,7 @@ router.post('/login', async (req, res, next) => {
   try {
     const { email, password } = loginSchema.parse(req.body);
 
-    const user = await User.findOne({ email });
+    const user = await StaffUser.findOne({ email });
     if (!user) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
@@ -38,10 +39,6 @@ router.post('/login', async (req, res, next) => {
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
       return res.status(401).json({ error: 'Invalid email or password' });
-    }
-
-    if (user.role !== 'admin' && user.role !== 'editor') {
-      return res.status(403).json({ error: 'You do not have panel access' });
     }
 
     const token = jwt.sign(
@@ -56,13 +53,27 @@ router.post('/login', async (req, res, next) => {
   }
 });
 
+// POST /api/admin/upload-url — get a presigned S3 upload URL (editor or admin)
+router.post('/upload-url', requireEditorOrAdmin, async (req, res, next) => {
+  try {
+    const { contentType, size } = req.body;
+    if (!contentType || !size) {
+      return res.status(400).json({ error: 'contentType and size are required' });
+    }
+    const result = await createPresignedUploadUrl(contentType, size);
+    res.json(result);
+  } catch (err) {
+    if (err.message.includes('Only') || err.message.includes('size')) {
+      return res.status(400).json({ error: err.message });
+    }
+    next(err);
+  }
+});
+
 // GET /api/admin/users — list admin/editor users (admin only)
 router.get('/users', requireAdmin, async (req, res, next) => {
   try {
-    const users = await User.find(
-      { role: { $in: ['admin', 'editor'] } },
-      { passwordHash: 0, __v: 0, addresses: 0, preferences: 0 }
-    ).sort({ createdAt: -1 });
+    const users = await StaffUser.find({}, { passwordHash: 0, __v: 0 }).sort({ createdAt: -1 });
     res.json({ users });
   } catch (err) {
     next(err);
@@ -74,13 +85,13 @@ router.post('/users', requireAdmin, async (req, res, next) => {
   try {
     const data = createUserSchema.parse(req.body);
 
-    const existing = await User.findOne({ email: data.email });
+    const existing = await StaffUser.findOne({ email: data.email });
     if (existing) {
-      return res.status(409).json({ error: 'An account with this email already exists' });
+      return res.status(409).json({ error: 'A staff account with this email already exists' });
     }
 
     const passwordHash = await bcrypt.hash(data.password, 10);
-    const user = await User.create({
+    const user = await StaffUser.create({
       email: data.email,
       passwordHash,
       role: data.role,
@@ -114,10 +125,10 @@ router.patch('/users/:id/role', requireAdmin, async (req, res, next) => {
       return res.status(400).json({ error: 'You cannot change your own role' });
     }
 
-    const user = await User.findByIdAndUpdate(
+    const user = await StaffUser.findByIdAndUpdate(
       req.params.id,
       { role },
-      { new: true, select: '-passwordHash -__v -addresses -preferences' }
+      { new: true, select: '-passwordHash -__v' }
     );
     if (!user) return res.status(404).json({ error: 'User not found' });
 
@@ -134,8 +145,8 @@ router.delete('/users/:id', requireAdmin, async (req, res, next) => {
       return res.status(400).json({ error: 'You cannot delete your own account' });
     }
 
-    const user = await User.findByIdAndDelete(req.params.id);
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    const user = await StaffUser.findByIdAndDelete(req.params.id);
+    if (!user) return res.status(404).json({ error: 'Staff user not found' });
 
     res.status(204).end();
   } catch (err) {

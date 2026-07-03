@@ -1,10 +1,11 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Upload, X, Loader2 } from 'lucide-react';
 import { api } from '@/lib/api';
 
 interface Props {
   images: string[];
   onChange: (images: string[]) => void;
+  onBusyChange?: (busy: boolean) => void;
 }
 
 interface UploadingFile {
@@ -14,9 +15,14 @@ interface UploadingFile {
   error?: string;
 }
 
-export function ImageUploader({ images, onChange }: Props) {
+export function ImageUploader({ images, onChange, onBusyChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState<UploadingFile[]>([]);
+
+  useEffect(() => {
+    onBusyChange?.(uploading.some((u) => u.progress === 'uploading'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uploading]);
 
   const uploadFile = async (file: File) => {
     const id = `${Date.now()}-${file.name}`;
@@ -25,11 +31,14 @@ export function ImageUploader({ images, onChange }: Props) {
     try {
       const { uploadUrl, publicUrl } = await api.getUploadUrl(file.type, file.size);
 
-      await fetch(uploadUrl, {
+      const putRes = await fetch(uploadUrl, {
         method: 'PUT',
         headers: { 'Content-Type': file.type },
         body: file,
       });
+      if (!putRes.ok) {
+        throw new Error(`Upload to S3 failed (${putRes.status})`);
+      }
 
       onChange([...images, publicUrl]);
       setUploading((prev) => prev.map((u) => u.id === id ? { ...u, progress: 'done' } : u));

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -50,6 +50,15 @@ export function AdminProductForm({ initial, onSubmit, onCancel }: Props) {
   const [badge, setBadge] = useState(initial?.badge ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [busyUploaders, setBusyUploaders] = useState<Set<string>>(new Set());
+  const imagesUploading = busyUploaders.size > 0;
+
+  const setUploaderBusy = (id: string, busy: boolean) =>
+    setBusyUploaders((prev) => {
+      const next = new Set(prev);
+      if (busy) next.add(id); else next.delete(id);
+      return next;
+    });
 
   const addColor = () =>
     setColorList(prev => [...prev, { name: '', hex: '#000000', images: [] }]);
@@ -65,7 +74,15 @@ export function AdminProductForm({ initial, onSubmit, onCancel }: Props) {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (imagesUploading) return;
     setError('');
+
+    const unnamedWithImages = colorList.some(c => !c.name.trim() && c.images.length > 0);
+    if (unnamedWithImages) {
+      setError('One of your colors has uploaded images but no name — name it before saving, or its images will be lost.');
+      return;
+    }
+
     setSaving(true);
     try {
       await onSubmit({
@@ -161,7 +178,7 @@ export function AdminProductForm({ initial, onSubmit, onCancel }: Props) {
       <div className="space-y-2">
         <Label>Default Images</Label>
         <p className="text-xs text-[#999]">Shown on product pages when no specific color is selected, or for products without color variants.</p>
-        <ImageUploader images={images} onChange={setImages} />
+        <ImageUploader images={images} onChange={setImages} onBusyChange={(busy) => setUploaderBusy('default', busy)} />
       </div>
 
       {/* Colors with per-color image uploaders */}
@@ -241,7 +258,11 @@ export function AdminProductForm({ initial, onSubmit, onCancel }: Props) {
                   <span className="text-[#999] font-normal ml-1">({color.images.length} uploaded)</span>
                 )}
               </p>
-              <ImageUploader images={color.images} onChange={imgs => updateColorImages(i, imgs)} />
+              <ImageUploader
+                images={color.images}
+                onChange={imgs => updateColorImages(i, imgs)}
+                onBusyChange={(busy) => setUploaderBusy(`color-${i}`, busy)}
+              />
             </div>
           </div>
         ))}
@@ -256,8 +277,9 @@ export function AdminProductForm({ initial, onSubmit, onCancel }: Props) {
 
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
-        <Button type="submit" disabled={saving} className="bg-[#1A1A1A] hover:bg-[#333]">
-          {saving ? 'Saving...' : initial ? 'Save changes' : 'Add product'}
+        <Button type="submit" disabled={saving || imagesUploading} className="bg-[#1A1A1A] hover:bg-[#333] flex items-center gap-2">
+          {(saving || imagesUploading) && <Loader2 className="size-4 animate-spin" />}
+          {imagesUploading ? 'Uploading images...' : saving ? 'Saving...' : initial ? 'Save changes' : 'Add product'}
         </Button>
       </div>
     </form>

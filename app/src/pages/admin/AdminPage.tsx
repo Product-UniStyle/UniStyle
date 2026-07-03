@@ -237,7 +237,7 @@ export function AdminPage() {
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <img
-                                src={p.images[0]}
+                                src={p.images[0] ?? p.colors?.find(c => c.images?.length)?.images?.[0]}
                                 alt=""
                                 className="w-10 h-10 object-cover rounded bg-[#F5F5F5]"
                               />

@@ -1,6 +1,12 @@
 import type { BackendProduct } from '@/lib/api';
 import type { Product } from '@/data/products';
 
+function fallbackImages(p: BackendProduct): string[] {
+  if (p.images.length > 0) return p.images;
+  const colorWithImages = p.colors?.find(c => c.images?.length);
+  return colorWithImages?.images ?? [];
+}
+
 export function adaptProduct(p: BackendProduct): Product {
   return {
     id: p._id,
@@ -9,7 +15,7 @@ export function adaptProduct(p: BackendProduct): Product {
     price: p.compareAt ? p.compareAt / 100 : p.price / 100,
     salePrice: p.compareAt ? p.price / 100 : undefined,
     description: p.description,
-    images: p.images,
+    images: fallbackImages(p),
     category: p.category,
     university: p.university,
     gender: p.gender,

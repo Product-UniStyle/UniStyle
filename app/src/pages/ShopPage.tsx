@@ -157,11 +157,10 @@ function ProductCard({ product }: { product: Product }) {
 
 export function ShopPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialCategory = searchParams.get('category') || '';
   const sectionRef = useRef<HTMLDivElement>(null);
   const { products, loading } = useProducts();
 
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(initialCategory ? [initialCategory] : []);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedGenders, setSelectedGenders] = useState<string[]>([]);
   const [selectedUniversities, setSelectedUniversities] = useState<string[]>([]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
@@ -172,9 +171,26 @@ export function ShopPage() {
   const [gridCols, setGridCols] = useState(4);
   const [sortOpen, setSortOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [accessoriesOpen, setAccessoriesOpen] = useState(
-    () => !!initialCategory && ACCESSORY_CATEGORIES.includes(initialCategory)
-  );
+  const [accessoriesOpen, setAccessoriesOpen] = useState(false);
+
+  // Re-sync filters from the URL every time it changes — not just on first mount —
+  // so clicking a different header link while already on /shop actually re-filters.
+  useEffect(() => {
+    const category = searchParams.get('category') || '';
+    const gender = searchParams.get('gender') || '';
+    const university = searchParams.get('university') || '';
+
+    if (category === 'Accessories') {
+      setSelectedCategories([...ACCESSORY_CATEGORIES]);
+      setAccessoriesOpen(true);
+    } else {
+      setSelectedCategories(category ? [category] : []);
+      if (category && ACCESSORY_CATEGORIES.includes(category)) setAccessoriesOpen(true);
+    }
+    setSelectedGenders(gender ? [gender] : []);
+    setSelectedUniversities(university ? [university] : []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const universities = useMemo(
     () => Array.from(new Set(products.map(p => p.university).filter((u): u is string => !!u))).sort(),

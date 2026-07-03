@@ -44,6 +44,27 @@ const accessoriesItems = [
   { label: 'Tote Bags', href: '/shop?category=Tote+Bags' },
 ];
 
+const ACCESSORY_CATEGORY_VALUES = ['Badges', 'Bagpack', 'Beanies', 'Bottles', 'Crests', 'Mugs', 'Scarfs', 'Tote Bags'];
+
+function isNavLinkActive(label: string, href: string, pathname: string, search: string): boolean {
+  const params = new URLSearchParams(search);
+  switch (label) {
+    case 'Men':
+      return pathname === '/shop' && params.get('gender') === 'men';
+    case 'Women':
+      return pathname === '/shop' && params.get('gender') === 'women';
+    case 'Universities':
+      return pathname === '/shop' && params.has('university');
+    case 'Accessories': {
+      if (pathname !== '/shop') return false;
+      const category = params.get('category');
+      return category === 'Accessories' || (!!category && ACCESSORY_CATEGORY_VALUES.includes(category));
+    }
+    default:
+      return `${pathname}${search}` === href;
+  }
+}
+
 type DropdownItem = { label: string; href: string };
 
 type NavItem = {
@@ -190,7 +211,7 @@ export function Header() {
                 <Link
                   to={link.href}
                   className={`flex items-center gap-1 text-sm font-medium tracking-wide pb-1 border-b-2 transition-colors ${
-                    location.pathname === link.href
+                    isNavLinkActive(link.label, link.href, location.pathname, location.search)
                       ? 'border-[#1A1A1A] text-[#1A1A1A]'
                       : 'border-transparent text-[#1A1A1A] hover:border-[#1A1A1A]'
                   }`}

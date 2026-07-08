@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Heart, HelpCircle, Truck, Share2, Check, Star, ChevronLeft, ChevronRight, ShoppingBag, Lock, RefreshCw } from 'lucide-react';
 import { useProduct, useProducts } from '@/hooks/useProducts';
 import type { Product } from '@/data/products';
@@ -138,6 +138,7 @@ function ZoomLightbox({ images, name, current, onChange, onClose }: {
 export function ProductPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { product, loading } = useProduct(slug);
   const { addToCart } = useCart();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
@@ -162,11 +163,14 @@ export function ProductPage() {
 
   useEffect(() => {
     if (product) {
-      setSelectedColor(product.colors?.[0]?.name || '');
+      const colorFromUrl = searchParams.get('color');
+      const matched = colorFromUrl && product.colors?.some(c => c.name === colorFromUrl);
+      setSelectedColor(matched ? colorFromUrl! : (product.colors?.[0]?.name || ''));
       setSelectedSize(product.sizes?.[0] || '');
       setMainImage(0);
       setQuantity(1);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product]);
 
   useEffect(() => {

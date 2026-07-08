@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { X, Filter, Grid3X3, LayoutGrid, LayoutList, ChevronDown, ChevronRight } from 'lucide-react';
-import type { Product } from '@/data/products';
+import type { Product, ProductColor } from '@/data/products';
 import { useProducts } from '@/hooks/useProducts';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
@@ -22,16 +22,7 @@ const ACCESSORY_CATEGORIES = ['Badges', 'Bagpack', 'Beanies', 'Bottles', 'Crests
 const CLOTHING_ORDER = ['Hoodies', 'Sweatshirts', 'Tshirts', 'Joggers', 'Caps'];
 const CATEGORY_LABELS: Record<string, string> = { Tshirts: 'T-Shirts' };
 
-const colors = [
-  { name: 'Black', hex: '#1A1A1A' },
-  { name: 'Navy', hex: '#1E3A5F' },
-  { name: 'Burgundy', hex: '#6B1A2A' },
-  { name: 'Cream', hex: '#F5F0E8' },
-  { name: 'Red', hex: '#B83A3A' },
-  { name: 'Nude', hex: '#D4A996' },
-];
-
-function ProductCard({ product }: { product: Product }) {
+function ProductCard({ product, color }: { product: Product; color?: ProductColor }) {
   const { addToCart } = useCart();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const inWishlist = isInWishlist(product.id);
@@ -39,6 +30,8 @@ function ProductCard({ product }: { product: Product }) {
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
   const [imgIndex, setImgIndex] = useState(0);
   const cycleRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const images = (color?.images && color.images.length > 0) ? color.images : product.images;
+  const linkTo = `/product/${product.slug}${color ? `?color=${encodeURIComponent(color.name)}` : ''}`;
 
   useEffect(() => {
     if (!hasCountdown) return;
@@ -62,12 +55,12 @@ function ProductCard({ product }: { product: Product }) {
     <div className="group">
       <div className="relative bg-[#F5F5F5] overflow-hidden">
         <Link
-          to={`/product/${product.slug}`}
+          to={linkTo}
           className="block relative aspect-square overflow-hidden"
           onMouseEnter={() => {
-            if (product.images.length < 2) return;
+            if (images.length < 2) return;
             cycleRef.current = setInterval(() => {
-              setImgIndex(prev => (prev + 1) % product.images.length);
+              setImgIndex(prev => (prev + 1) % images.length);
             }, 1200);
           }}
           onMouseLeave={() => {
@@ -75,7 +68,7 @@ function ProductCard({ product }: { product: Product }) {
             setImgIndex(0);
           }}
         >
-          {product.images.map((src, i) => (
+          {images.map((src, i) => (
             <img
               key={i}
               src={src}
@@ -83,9 +76,9 @@ function ProductCard({ product }: { product: Product }) {
               className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${i === imgIndex ? 'opacity-100' : 'opacity-0'}`}
             />
           ))}
-          {product.images.length > 1 && (
+          {images.length > 1 && (
             <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              {product.images.map((_, i) => (
+              {images.map((_, i) => (
                 <span key={i} className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${i === imgIndex ? 'bg-white scale-125' : 'bg-white/50'}`} />
               ))}
             </div>
@@ -108,7 +101,7 @@ function ProductCard({ product }: { product: Product }) {
         )}
         <div className="absolute bottom-0 left-0 right-0 p-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 duration-300">
           <button
-            onClick={() => { addToCart(product); showToast('Added to cart'); }}
+            onClick={() => { addToCart(product, color?.name); showToast('Added to cart'); }}
             className="flex-1 bg-[#1A1A1A] text-white text-[11px] font-semibold uppercase tracking-wider py-2.5 hover:bg-[#333] transition-colors"
           >
             Add to Cart
@@ -125,7 +118,7 @@ function ProductCard({ product }: { product: Product }) {
         </div>
       </div>
       <div className="mt-3">
-        <Link to={`/product/${product.slug}`} className="text-sm font-medium text-[#1A1A1A] hover:underline">{product.name}</Link>
+        <Link to={linkTo} className="text-sm font-medium text-[#1A1A1A] hover:underline">{product.name}</Link>
         <div className="flex items-center gap-2 mt-1">
           {product.salePrice ? (
             <>
@@ -160,12 +153,38 @@ export function ShopPage() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const { products, loading } = useProducts();
 
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedGenders, setSelectedGenders] = useState<string[]>([]);
-  const [selectedUniversities, setSelectedUniversities] = useState<string[]>([]);
-  const [selectedColors, setSelectedColors] = useState<string[]>([]);
-  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
-  const [selectedAvailability, setSelectedAvailability] = useState<string[]>([]);
+  // The URL is the single source of truth for every filter — not a separate
+  // useState mirror — so the browser back/forward buttons, the navbar's active-link
+  // highlighting, and sidebar checkbox toggles all always agree on the current
+  // filter state instead of drifting apart.
+  const getParamList = (key: string) => {
+    const raw = searchParams.get(key);
+    return raw ? raw.split(',').filter(Boolean) : [];
+  };
+
+  const setParamList = (key: string, values: string[]) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (values.length > 0) next.set(key, values.join(','));
+      else next.delete(key);
+      return next;
+    }, { replace: true });
+  };
+
+  const selectedCategories = useMemo(() => {
+    const raw = getParamList('category');
+    if (raw.includes('Accessories')) {
+      return Array.from(new Set([...raw.filter(c => c !== 'Accessories'), ...ACCESSORY_CATEGORIES]));
+    }
+    return raw;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+  const selectedGenders = useMemo(() => getParamList('gender'), [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
+  const selectedUniversities = useMemo(() => getParamList('university'), [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
+  const selectedColors = useMemo(() => getParamList('color'), [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
+  const selectedSizes = useMemo(() => getParamList('size'), [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
+  const selectedAvailability = useMemo(() => getParamList('availability'), [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 9999]);
   const [sort, setSort] = useState('relevant');
   const [gridCols, setGridCols] = useState(4);
@@ -173,22 +192,10 @@ export function ShopPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [accessoriesOpen, setAccessoriesOpen] = useState(false);
 
-  // Re-sync filters from the URL every time it changes — not just on first mount —
-  // so clicking a different header link while already on /shop actually re-filters.
+  // Auto-expand the accessories subpanel when one of its subcategories is active
+  // in the URL (e.g. arriving via a header link), without fighting a manual toggle.
   useEffect(() => {
-    const category = searchParams.get('category') || '';
-    const gender = searchParams.get('gender') || '';
-    const university = searchParams.get('university') || '';
-
-    if (category === 'Accessories') {
-      setSelectedCategories([...ACCESSORY_CATEGORIES]);
-      setAccessoriesOpen(true);
-    } else {
-      setSelectedCategories(category ? [category] : []);
-      if (category && ACCESSORY_CATEGORIES.includes(category)) setAccessoriesOpen(true);
-    }
-    setSelectedGenders(gender ? [gender] : []);
-    setSelectedUniversities(university ? [university] : []);
+    if (selectedCategories.some(c => ACCESSORY_CATEGORIES.includes(c))) setAccessoriesOpen(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
@@ -237,6 +244,14 @@ export function ShopPage() {
     [products]
   );
 
+  // Derived from real product data — not a hardcoded palette — so any color name
+  // entered in the admin panel or a bulk-upload sheet shows up as a filter option.
+  const colorOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    products.forEach(p => p.colors?.forEach(c => { if (!map.has(c.name)) map.set(c.name, c.hex); }));
+    return Array.from(map, ([name, hex]) => ({ name, hex }));
+  }, [products]);
+
   // Helper: apply all filters except one group, used for independent facet counts
   const applyFilters = (
     source: Product[],
@@ -259,6 +274,7 @@ export function ShopPage() {
   const universityBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, colors: selectedColors, sizes: selectedSizes, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedCategories, selectedColors, selectedSizes, selectedAvailability, priceRange]);
   const sizeBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, unis: selectedUniversities, colors: selectedColors, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedCategories, selectedUniversities, selectedColors, selectedAvailability, priceRange]);
   const availBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, unis: selectedUniversities, colors: selectedColors, sizes: selectedSizes, price: priceRange }), [products, selectedGenders, selectedCategories, selectedUniversities, selectedColors, selectedSizes, priceRange]);
+  const colorBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, unis: selectedUniversities, sizes: selectedSizes, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedCategories, selectedUniversities, selectedSizes, selectedAvailability, priceRange]);
 
   const filteredProducts = useMemo(() => {
     let result = [...products];
@@ -284,31 +300,51 @@ export function ShopPage() {
     return result;
   }, [products, selectedGenders, selectedCategories, selectedUniversities, selectedColors, selectedSizes, selectedAvailability, priceRange, sort]);
 
+  // One grid tile per color variant (so a 3-color product shows 3 tiles). When a
+  // color filter is active, only the matching color variant(s) are shown per
+  // product rather than all of that product's colors.
+  const gridEntries = useMemo(() => {
+    const entries: { key: string; product: Product; color?: ProductColor }[] = [];
+    filteredProducts.forEach(p => {
+      if (p.colors && p.colors.length > 0) {
+        const toShow = selectedColors.length > 0
+          ? p.colors.filter(c => selectedColors.includes(c.name))
+          : p.colors;
+        toShow.forEach(c => entries.push({ key: `${p.id}-${c.name}`, product: p, color: c }));
+      } else {
+        entries.push({ key: p.id, product: p });
+      }
+    });
+    return entries;
+  }, [filteredProducts, selectedColors]);
+
   const clearFilters = () => {
-    setSelectedGenders([]);
-    setSelectedCategories([]);
-    setSelectedUniversities([]);
-    setSelectedColors([]);
-    setSelectedSizes([]);
-    setSelectedAvailability([]);
     setPriceRange([0, 9999]);
-    setSearchParams({});
+    setSearchParams({}, { replace: true });
   };
 
   const toggleGender = (gender: string) => {
-    setSelectedGenders(prev => prev.includes(gender) ? prev.filter(g => g !== gender) : [...prev, gender]);
+    setParamList('gender', selectedGenders.includes(gender) ? selectedGenders.filter(g => g !== gender) : [...selectedGenders, gender]);
   };
 
   const toggleCategory = (cat: string) => {
-    setSelectedCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
+    setParamList('category', selectedCategories.includes(cat) ? selectedCategories.filter(c => c !== cat) : [...selectedCategories, cat]);
   };
 
   const toggleUniversity = (uni: string) => {
-    setSelectedUniversities(prev => prev.includes(uni) ? prev.filter(u => u !== uni) : [...prev, uni]);
+    setParamList('university', selectedUniversities.includes(uni) ? selectedUniversities.filter(u => u !== uni) : [...selectedUniversities, uni]);
   };
 
   const toggleSize = (size: string) => {
-    setSelectedSizes(prev => prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]);
+    setParamList('size', selectedSizes.includes(size) ? selectedSizes.filter(s => s !== size) : [...selectedSizes, size]);
+  };
+
+  const toggleColor = (name: string) => {
+    setParamList('color', selectedColors.includes(name) ? selectedColors.filter(c => c !== name) : [...selectedColors, name]);
+  };
+
+  const toggleAvailability = (key: string) => {
+    setParamList('availability', selectedAvailability.includes(key) ? selectedAvailability.filter(a => a !== key) : [...selectedAvailability, key]);
   };
 
   useEffect(() => {
@@ -415,9 +451,9 @@ export function ShopPage() {
                               checked={accessorySubcategories.every(c => selectedCategories.includes(c))}
                               onChange={() => {
                                 const allSelected = accessorySubcategories.every(c => selectedCategories.includes(c));
-                                setSelectedCategories(prev => allSelected
-                                  ? prev.filter(c => !accessorySubcategories.includes(c))
-                                  : Array.from(new Set([...prev, ...accessorySubcategories])));
+                                setParamList('category', allSelected
+                                  ? selectedCategories.filter(c => !accessorySubcategories.includes(c))
+                                  : Array.from(new Set([...selectedCategories, ...accessorySubcategories])));
                               }}
                               className="accent-[#1A1A1A]"
                             />
@@ -472,11 +508,11 @@ export function ShopPage() {
                   <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Availability</h4>
                   <div className="space-y-2">
                     <label className="flex items-center gap-2 text-sm text-[#666] cursor-pointer">
-                      <input type="checkbox" checked={selectedAvailability.includes('in')} onChange={() => setSelectedAvailability(prev => prev.includes('in') ? prev.filter(x => x !== 'in') : [...prev, 'in'])} className="accent-[#1A1A1A]" />
+                      <input type="checkbox" checked={selectedAvailability.includes('in')} onChange={() => toggleAvailability('in')} className="accent-[#1A1A1A]" />
                       In stock ({availBase.filter(p => p.inStock).length})
                     </label>
                     <label className="flex items-center gap-2 text-sm text-[#666] cursor-pointer">
-                      <input type="checkbox" checked={selectedAvailability.includes('out')} onChange={() => setSelectedAvailability(prev => prev.includes('out') ? prev.filter(x => x !== 'out') : [...prev, 'out'])} className="accent-[#1A1A1A]" />
+                      <input type="checkbox" checked={selectedAvailability.includes('out')} onChange={() => toggleAvailability('out')} className="accent-[#1A1A1A]" />
                       Out of stock ({availBase.filter(p => !p.inStock).length})
                     </label>
                   </div>
@@ -501,20 +537,25 @@ export function ShopPage() {
                 </div>
 
                 {/* Colors */}
+                {colorOptions.length > 0 && (
                 <div className="mb-6">
                   <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Color</h4>
                   <div className="flex flex-wrap gap-2">
-                    {colors.map(c => (
-                      <button
-                        key={c.name}
-                        onClick={() => setSelectedColors(prev => prev.includes(c.name) ? prev.filter(x => x !== c.name) : [...prev, c.name])}
-                        className={`w-6 h-6 rounded-full border-2 transition-all ${selectedColors.includes(c.name) ? 'border-[#1A1A1A] scale-110' : 'border-[#E5E5E5]'}`}
-                        style={{ backgroundColor: c.hex }}
-                        title={c.name}
-                      />
-                    ))}
+                    {colorOptions.map(c => {
+                      const count = colorBase.filter(p => p.colors?.some(pc => pc.name === c.name)).length;
+                      return (
+                        <button
+                          key={c.name}
+                          onClick={() => toggleColor(c.name)}
+                          className={`w-6 h-6 rounded-full border-2 transition-all ${selectedColors.includes(c.name) ? 'border-[#1A1A1A] scale-110' : 'border-[#E5E5E5]'}`}
+                          style={{ backgroundColor: c.hex }}
+                          title={`${c.name} (${count})`}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
+                )}
             </>
           </aside>
 
@@ -523,7 +564,7 @@ export function ShopPage() {
             {/* Toolbar */}
             <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
               <p className="text-sm text-[#666]">
-                Showing {filteredProducts.length} of {products.length} products
+                Showing {gridEntries.length} of {products.length} products
               </p>
               <div className="flex items-center gap-4">
                 <div className="hidden md:flex items-center gap-1">
@@ -559,11 +600,11 @@ export function ShopPage() {
               <div className="text-center py-20">
                 <p className="text-lg text-[#666]">Loading products...</p>
               </div>
-            ) : filteredProducts.length > 0 ? (
+            ) : gridEntries.length > 0 ? (
               <div className={`grid gap-6 ${gridCols === 2 ? 'grid-cols-2' : gridCols === 3 ? 'grid-cols-2 md:grid-cols-3' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'}`}>
-                {filteredProducts.map(p => (
-                  <div key={p.id} className="shop-card">
-                    <ProductCard product={p} />
+                {gridEntries.map(({ key, product, color }) => (
+                  <div key={key} className="shop-card">
+                    <ProductCard product={product} color={color} />
                   </div>
                 ))}
               </div>

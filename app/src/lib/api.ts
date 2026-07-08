@@ -126,6 +126,8 @@ export const api = {
 
   getProductBySlug: (slug: string) => request<{ product: BackendProduct }>(`/products/${slug}`),
 
+  getCategories: () => request<{ categories: string[] }>('/products/categories'),
+
   // ---- Cart ----
   getCart: () => request<{ items: BackendCartItem[] }>('/cart'),
 

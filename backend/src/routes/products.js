@@ -90,6 +90,16 @@ router.post('/import-sheet', requireImportKey, upload.single('file'), async (req
   }
 });
 
+// GET /api/products/categories — distinct category values actually in use
+router.get('/categories', async (req, res, next) => {
+  try {
+    const categories = await Product.distinct('category');
+    res.json({ categories: categories.filter(Boolean).sort() });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/products?category=&university=&gender=&search=&featured=true&page=1&limit=20
 router.get('/', async (req, res, next) => {
   try {

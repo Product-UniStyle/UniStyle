@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { Plus, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,9 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { categories } from '@/data/products';
 import type { AdminProductInput, BackendProduct } from '@/lib/api';
 import { ImageUploader } from './ImageUploader';
+
+const NEW_CATEGORY = '__new__';
 
 function toCommaList(values: string[]) {
   return values.join(', ');
@@ -26,16 +27,23 @@ interface ColorEntry {
 
 interface Props {
   initial?: BackendProduct;
+  categories: string[];
   onSubmit: (data: AdminProductInput) => Promise<void>;
   onCancel: () => void;
 }
 
-export function AdminProductForm({ initial, onSubmit, onCancel }: Props) {
+export function AdminProductForm({ initial, categories, onSubmit, onCancel }: Props) {
   const [name, setName] = useState(initial?.name ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
   const [price, setPrice] = useState(initial ? (initial.price / 100).toString() : '');
   const [compareAt, setCompareAt] = useState(initial?.compareAt ? (initial.compareAt / 100).toString() : '');
-  const [category, setCategory] = useState(initial?.category ?? categories[0]);
+  const categoryOptions = useMemo(() => {
+    const set = new Set(categories);
+    if (initial?.category) set.add(initial.category);
+    return Array.from(set).sort();
+  }, [categories, initial?.category]);
+  const [category, setCategory] = useState(initial?.category ?? categoryOptions[0] ?? '');
+  const [addingCategory, setAddingCategory] = useState(!initial && categoryOptions.length === 0);
   const [gender, setGender] = useState<('men' | 'women')[]>(initial?.gender ?? []);
   const toggleGender = (g: 'men' | 'women') =>
     setGender(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]);
@@ -133,12 +141,40 @@ export function AdminProductForm({ initial, onSubmit, onCancel }: Props) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Category</Label>
-          <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          {addingCategory ? (
+            <div className="flex gap-2">
+              <Input
+                autoFocus
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                placeholder="e.g. Hoodies"
+                required
+              />
+              {categoryOptions.length > 0 && (
+                <Button type="button" variant="outline" onClick={() => { setAddingCategory(false); setCategory(categoryOptions[0]); }}>
+                  Cancel
+                </Button>
+              )}
+            </div>
+          ) : (
+            <Select
+              value={category}
+              onValueChange={(v) => {
+                if (v === NEW_CATEGORY) {
+                  setAddingCategory(true);
+                  setCategory('');
+                } else {
+                  setCategory(v);
+                }
+              }}
+            >
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {categoryOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                <SelectItem value={NEW_CATEGORY}>+ Add new category…</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="stock">Stock</Label>

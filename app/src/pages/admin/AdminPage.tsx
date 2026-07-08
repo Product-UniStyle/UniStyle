@@ -28,6 +28,7 @@ export function AdminPage() {
   const [tab, setTab] = useState<Tab>('products');
 
   const [products, setProducts] = useState<BackendProduct[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [featuredOnly, setFeaturedOnly] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -66,6 +67,7 @@ export function AdminPage() {
       return;
     }
     load();
+    api.getCategories().then(({ categories }) => setCategories(categories)).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -95,6 +97,7 @@ export function AdminPage() {
     setFormOpen(false);
     setEditing(null);
     await load();
+    api.getCategories().then(({ categories }) => setCategories(categories)).catch(() => {});
   };
 
   const handleDelete = async () => {
@@ -304,6 +307,7 @@ export function AdminPage() {
           </DialogHeader>
           <AdminProductForm
             initial={editing ?? undefined}
+            categories={categories}
             onSubmit={handleSave}
             onCancel={() => setFormOpen(false)}
           />

@@ -151,14 +151,11 @@ function buildProduct(record, warnings) {
     colors,
     stock: Number(record['stock']) || 0,
     featured: toBool(record['featured']),
-    reviewCount: Number(record['reviewCount']) || 0,
     badge: record['badge']?.trim() || undefined,
   };
 
   if (compareAt !== undefined) product.compareAt = compareAt;
   if (countdownEnd && !isNaN(countdownEnd.getTime())) product.countdownEnd = countdownEnd;
-  const rating = Number(record['rating']);
-  if (record['rating'] && !Number.isNaN(rating)) product.rating = rating;
 
   return product;
 }

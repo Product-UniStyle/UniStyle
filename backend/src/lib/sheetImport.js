@@ -146,14 +146,18 @@ function buildProduct(record, warnings) {
     category,
     university,
     gender,
-    images,
     sizes,
-    colors,
     stock: Number(record['stock']) || 0,
     featured: toBool(record['featured']),
     badge: record['badge']?.trim() || undefined,
   };
 
+  // images/colors are intentionally omitted when the sheet doesn't provide them
+  // (rather than set to []), so re-importing a sheet never wipes out images/colors
+  // that were added afterwards via the admin panel's upload UI. On insert, the
+  // Product schema's own defaults ([]) apply via setDefaultsOnInsert.
+  if (images.length > 0) product.images = images;
+  if (colors.length > 0) product.colors = colors;
   if (compareAt !== undefined) product.compareAt = compareAt;
   if (countdownEnd && !isNaN(countdownEnd.getTime())) product.countdownEnd = countdownEnd;
 

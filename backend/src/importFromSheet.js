@@ -32,7 +32,7 @@ async function main() {
 
   console.log('Products to import:');
   products.forEach((p) => {
-    console.log(`  - [${p.slug}] ${p.name} | ${p.category} | AED ${p.price / 100} | colors: ${p.colors.length} | sizes: ${p.sizes.length} | images: ${p.images.length}`);
+    console.log(`  - [${p.slug}] ${p.name} | ${p.category} | AED ${p.price / 100} | colors: ${(p.colors ?? []).length} | sizes: ${p.sizes.length} | images: ${(p.images ?? []).length}`);
   });
 
   if (!shouldWrite) {

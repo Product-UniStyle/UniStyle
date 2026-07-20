@@ -71,7 +71,7 @@ router.post('/import-sheet', requireImportKey, upload.single('file'), async (req
     for (const product of products) {
       await Product.findOneAndUpdate(
         { slug: product.slug },
-        product,
+        { $set: product },
         { upsert: true, new: true, setDefaultsOnInsert: true }
       );
       imported++;

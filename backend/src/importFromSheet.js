@@ -45,7 +45,7 @@ async function main() {
   for (const product of products) {
     await Product.findOneAndUpdate(
       { slug: product.slug },
-      product,
+      { $set: product },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
   }

@@ -11,8 +11,26 @@ export function useProducts(params: { featured?: boolean } = {}) {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    api.getProducts({ limit: 100, featured })
-      .then(({ products: backendProducts }) => {
+
+    // The API caps each page at 100, so page through until every product
+    // is fetched (callers filter/search this list client-side and expect
+    // the full catalog, not just the first page).
+    async function loadAll() {
+      let all: Awaited<ReturnType<typeof api.getProducts>>['products'] = [];
+      let page = 1;
+      let total = Infinity;
+      while (all.length < total) {
+        const res = await api.getProducts({ page, limit: 100, featured });
+        all = all.concat(res.products);
+        total = res.total;
+        if (res.products.length === 0) break;
+        page++;
+      }
+      return all;
+    }
+
+    loadAll()
+      .then((backendProducts) => {
         if (active) setProducts(backendProducts.map(adaptProduct));
       })
       .finally(() => { if (active) setLoading(false); });

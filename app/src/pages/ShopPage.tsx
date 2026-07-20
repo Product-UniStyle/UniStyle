@@ -192,6 +192,9 @@ export function ShopPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [accessoriesOpen, setAccessoriesOpen] = useState(false);
 
+  const PAGE_SIZE = 100;
+  const [page, setPage] = useState(1);
+
   // Auto-expand the accessories subpanel when one of its subcategories is active
   // in the URL (e.g. arriving via a header link), without fighting a manual toggle.
   useEffect(() => {
@@ -318,6 +321,19 @@ export function ShopPage() {
     return entries;
   }, [filteredProducts, selectedColors]);
 
+  const totalPages = Math.max(1, Math.ceil(gridEntries.length / PAGE_SIZE));
+  const pagedEntries = gridEntries.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  // Jump back to page 1 whenever filters/sort change the result set, and clamp
+  // down if the current page no longer exists (e.g. a filter shrinks the list).
+  useEffect(() => {
+    setPage(1);
+  }, [selectedGenders, selectedCategories, selectedUniversities, selectedColors, selectedSizes, selectedAvailability, priceRange, sort]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [totalPages]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const clearFilters = () => {
     setPriceRange([0, 9999]);
     setSearchParams({}, { replace: true });
@@ -353,7 +369,7 @@ export function ShopPage() {
       gsap.from('.shop-card', { y: 30, opacity: 0, duration: 0.5, stagger: 0.08, scrollTrigger: { trigger: sectionRef.current, start: 'top 80%' } });
     }, sectionRef);
     return () => ctx.revert();
-  }, [filteredProducts]);
+  }, [pagedEntries]);
 
   return (
     <div className="mt-[72px]">
@@ -564,7 +580,7 @@ export function ShopPage() {
             {/* Toolbar */}
             <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
               <p className="text-sm text-[#666]">
-                Showing {gridEntries.length} of {products.length} products
+                Showing {pagedEntries.length} of {gridEntries.length} products
               </p>
               <div className="flex items-center gap-4">
                 <div className="hidden md:flex items-center gap-1">
@@ -601,13 +617,36 @@ export function ShopPage() {
                 <p className="text-lg text-[#666]">Loading products...</p>
               </div>
             ) : gridEntries.length > 0 ? (
-              <div className={`grid gap-6 ${gridCols === 2 ? 'grid-cols-2' : gridCols === 3 ? 'grid-cols-2 md:grid-cols-3' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'}`}>
-                {gridEntries.map(({ key, product, color }) => (
-                  <div key={key} className="shop-card">
-                    <ProductCard product={product} color={color} />
+              <>
+                <div className={`grid gap-6 ${gridCols === 2 ? 'grid-cols-2' : gridCols === 3 ? 'grid-cols-2 md:grid-cols-3' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'}`}>
+                  {pagedEntries.map(({ key, product, color }) => (
+                    <div key={key} className="shop-card">
+                      <ProductCard product={product} color={color} />
+                    </div>
+                  ))}
+                </div>
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between gap-4 mt-10 pt-6 border-t border-[#E5E5E5]">
+                    <p className="text-sm text-[#666]">Page {page} of {totalPages}</p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setPage((p) => p - 1)}
+                        disabled={page <= 1}
+                        className="text-sm border border-[#E5E5E5] px-4 py-2 hover:border-[#1A1A1A] transition-colors disabled:opacity-40 disabled:hover:border-[#E5E5E5] disabled:cursor-not-allowed"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        onClick={() => setPage((p) => p + 1)}
+                        disabled={page >= totalPages}
+                        className="text-sm border border-[#E5E5E5] px-4 py-2 hover:border-[#1A1A1A] transition-colors disabled:opacity-40 disabled:hover:border-[#E5E5E5] disabled:cursor-not-allowed"
+                      >
+                        Next
+                      </button>
+                    </div>
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             ) : (
               <div className="text-center py-20">
                 <p className="text-lg text-[#666] mb-4">No products match your filters.</p>

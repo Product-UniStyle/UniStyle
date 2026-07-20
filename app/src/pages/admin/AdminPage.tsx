@@ -39,16 +39,31 @@ export function AdminPage() {
   const [csvOpen, setCsvOpen] = useState(false);
   const [deleting, setDeleting] = useState<BackendProduct | null>(null);
 
+  const PAGE_SIZE = 100;
+  const [page, setPage] = useState(1);
+
   const load = async () => {
     setLoading(true);
     setError('');
     try {
-      const { products } = await api.getProducts({
-        search: search || undefined,
-        featured: featuredOnly ? true : undefined,
-        limit: 100,
-      });
-      setProducts(products);
+      // The API caps each page at 100, so keep paging until we've fetched
+      // every product (admin needs the full catalog, not just the first page).
+      let all: BackendProduct[] = [];
+      let page = 1;
+      let total = Infinity;
+      while (all.length < total) {
+        const res = await api.getProducts({
+          search: search || undefined,
+          featured: featuredOnly ? true : undefined,
+          page,
+          limit: 100,
+        });
+        all = all.concat(res.products);
+        total = res.total;
+        if (res.products.length === 0) break;
+        page++;
+      }
+      setProducts(all);
     } catch (err) {
       if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
         setAdminToken(null);
@@ -73,10 +88,20 @@ export function AdminPage() {
 
   useEffect(() => {
     if (tab !== 'products') return;
+    setPage(1);
     const t = setTimeout(load, 300);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, featuredOnly, tab]);
+
+  const totalPages = Math.max(1, Math.ceil(products.length / PAGE_SIZE));
+  const pagedProducts = products.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  // Keeps the current page valid after a delete/import changes the total count
+  // (e.g. you're on page 3 and a delete drops the list below 200 products).
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [totalPages]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openCreate = () => { setEditing(null); setFormOpen(true); };
   const openEdit = (p: BackendProduct) => { setEditing(p); setFormOpen(true); };
@@ -235,7 +260,7 @@ export function AdminPage() {
                     ) : products.length === 0 ? (
                       <TableRow><TableCell colSpan={7} className="text-center py-10 text-[#999]">No products found</TableCell></TableRow>
                     ) : (
-                      products.map((p) => (
+                      pagedProducts.map((p) => (
                         <TableRow key={p._id}>
                           <TableCell>
                             <div className="flex items-center gap-3">
@@ -292,6 +317,21 @@ export function AdminPage() {
                   </TableBody>
                 </Table>
               </div>
+              {!loading && products.length > 0 && (
+                <div className="flex items-center justify-between border-t border-[#E5E5E5] px-4 py-3">
+                  <p className="text-sm text-[#666]">
+                    Page {page} of {totalPages} ({products.length} products)
+                  </p>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                      Previous
+                    </Button>
+                    <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </>
         )}

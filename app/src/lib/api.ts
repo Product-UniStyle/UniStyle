@@ -80,6 +80,12 @@ async function adminRequest<T>(path: string, options: RequestInit = {}): Promise
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
+    // Session expired/invalid: drop the stale token and bounce to admin login
+    // instead of surfacing a raw "Invalid or expired token" error in-place.
+    if (res.status === 401 && path !== '/admin/login' && window.location.pathname !== '/admin/login') {
+      setAdminToken(null);
+      window.location.href = '/admin/login';
+    }
     throw new ApiError(data.error || 'Request failed', res.status, data.details);
   }
 

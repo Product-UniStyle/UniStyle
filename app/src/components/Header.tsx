@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Search, User, Heart, ShoppingBag, X, Menu, ChevronDown } from 'lucide-react';
+import { User, Heart, ShoppingBag, Menu, ChevronDown } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { api } from '@/lib/api';

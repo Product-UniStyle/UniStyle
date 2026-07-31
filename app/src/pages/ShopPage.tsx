@@ -205,10 +205,11 @@ export function ShopPage() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const PAGE_SIZE = 100;
-  const [page, setPage] = useState(() => {
+  const [page, setPage] = useState<number>(() => {
     try {
       const saved = sessionStorage.getItem(scrollStateKey);
-      return saved ? JSON.parse(saved).page ?? 1 : 1;
+      const parsedPage = saved ? Number(JSON.parse(saved).page) : NaN;
+      return Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
     } catch {
       return 1;
     }

@@ -124,7 +124,7 @@ export const api = {
   deleteAccount: () => request<void>('/auth/me', { method: 'DELETE' }),
 
   // ---- Products ----
-  getProducts: (params: { category?: string; university?: string; gender?: string; search?: string; featured?: boolean; page?: number; limit?: number } = {}) => {
+  getProducts: (params: { category?: string; institution?: string; gender?: string; search?: string; featured?: boolean; page?: number; limit?: number } = {}) => {
     const qs = new URLSearchParams();
     Object.entries(params).forEach(([k, v]) => { if (v !== undefined) qs.set(k, String(v)); });
     return request<{ products: BackendProduct[]; total: number; page: number; limit: number }>(`/products?${qs}`);
@@ -132,7 +132,7 @@ export const api = {
 
   getProductBySlug: (slug: string) => request<{ product: BackendProduct }>(`/products/${slug}`),
 
-  getCategories: () => request<{ categories: string[] }>('/products/categories'),
+  getCategories: () => request<{ categories: string[]; accessoryCategories: string[]; universities: string[]; schools: string[] }>('/products/categories'),
 
   // ---- Cart ----
   getCart: () => request<{ items: BackendCartItem[] }>('/cart'),
@@ -273,13 +273,15 @@ export interface BackendProduct {
   price: number; // cents
   compareAt?: number; // cents
   category: string;
-  university?: string;
+  institution?: string;
+  institutionType?: 'university' | 'school';
   gender?: ('men' | 'women')[];
   images: string[];
   sizes: string[];
   colors: { name: string; hex: string; images?: string[] }[];
   stock: number;
   featured: boolean;
+  isAccessory: boolean;
   rating?: number;
   reviewCount?: number;
   badge?: string;
@@ -339,13 +341,15 @@ export interface AdminProductInput {
   price: number; // cents
   compareAt?: number; // cents
   category: string;
-  university?: string;
+  institution?: string;
+  institutionType?: 'university' | 'school';
   gender?: ('men' | 'women')[];
   images: string[];
   sizes: string[];
   colors: { name: string; hex: string; images: string[] }[];
   stock: number;
   featured: boolean;
+  isAccessory: boolean;
   rating?: number;
   reviewCount?: number;
   badge?: string;

@@ -155,7 +155,7 @@ export function ProductPage() {
   const { products: allProducts } = useProducts();
 
   const completeCollection = product
-    ? allProducts.filter(p => p.id !== product.id && p.university && p.university === product.university).slice(0, 8)
+    ? allProducts.filter(p => p.id !== product.id && p.institution && p.institution === product.institution).slice(0, 8)
     : [];
   const youMayAlsoLike = product
     ? allProducts.filter(p => p.id !== product.id).slice(0, 4)
@@ -252,10 +252,10 @@ export function ProductPage() {
       <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-4">
         <nav className="text-sm text-[#666]">
           <Link to="/" className="hover:underline">Home</Link>
-          {product.university && (
+          {product.institution && (
             <>
               <span className="mx-2">/</span>
-              <Link to={`/shop?university=${encodeURIComponent(product.university)}`} className="hover:underline">{product.university}</Link>
+              <Link to={`/shop?institution=${encodeURIComponent(product.institution)}`} className="hover:underline">{product.institution}</Link>
             </>
           )}
           <span className="mx-2">/</span>

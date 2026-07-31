@@ -47,7 +47,8 @@ export function AdminProductForm({ initial, categories, onSubmit, onCancel }: Pr
   const [gender, setGender] = useState<('men' | 'women')[]>(initial?.gender ?? []);
   const toggleGender = (g: 'men' | 'women') =>
     setGender(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]);
-  const [university, setUniversity] = useState(initial?.university ?? '');
+  const [institution, setInstitution] = useState(initial?.institution ?? '');
+  const [institutionType, setInstitutionType] = useState<'university' | 'school'>(initial?.institutionType ?? 'university');
   const [images, setImages] = useState<string[]>(initial?.images ?? []);
   const [sizes, setSizes] = useState(toCommaList(initial?.sizes ?? []));
   const [colorList, setColorList] = useState<ColorEntry[]>(
@@ -55,6 +56,7 @@ export function AdminProductForm({ initial, categories, onSubmit, onCancel }: Pr
   );
   const [stock, setStock] = useState(initial?.stock?.toString() ?? '0');
   const [featured, setFeatured] = useState(initial?.featured ?? false);
+  const [isAccessory, setIsAccessory] = useState(initial?.isAccessory ?? false);
   const [badge, setBadge] = useState(initial?.badge ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -100,12 +102,14 @@ export function AdminProductForm({ initial, categories, onSubmit, onCancel }: Pr
         compareAt: compareAt ? Math.round(Number(compareAt) * 100) : undefined,
         category,
         gender,
-        university: university || undefined,
+        institution: institution || undefined,
+        institutionType,
         images,
         sizes: fromCommaList(sizes),
         colors: colorList.filter(c => c.name.trim() && c.hex.trim()),
         stock: Number(stock) || 0,
         featured,
+        isAccessory,
         badge: badge || undefined,
       });
     } catch (err) {
@@ -116,7 +120,7 @@ export function AdminProductForm({ initial, categories, onSubmit, onCancel }: Pr
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 max-h-[70vh] overflow-y-auto pr-1">
+    <form onSubmit={handleSubmit} className="space-y-5">
       <div className="space-y-2">
         <Label htmlFor="name">Name</Label>
         <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
@@ -194,9 +198,21 @@ export function AdminProductForm({ initial, categories, onSubmit, onCancel }: Pr
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="university">University</Label>
-        <Input id="university" value={university} onChange={(e) => setUniversity(e.target.value)} placeholder="e.g. University of Birmingham" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="institution">Institution</Label>
+          <Input id="institution" value={institution} onChange={(e) => setInstitution(e.target.value)} placeholder="e.g. University of Birmingham" />
+        </div>
+        <div className="space-y-2">
+          <Label>Type</Label>
+          <Select value={institutionType} onValueChange={(v) => setInstitutionType(v as 'university' | 'school')}>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="university">University</SelectItem>
+              <SelectItem value="school">School</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -304,9 +320,15 @@ export function AdminProductForm({ initial, categories, onSubmit, onCancel }: Pr
         ))}
       </div>
 
-      <div className="flex items-center gap-2">
-        <Checkbox id="featured" checked={featured} onCheckedChange={(v) => setFeatured(v === true)} />
-        <Label htmlFor="featured">Featured</Label>
+      <div className="flex items-center gap-6">
+        <div className="flex items-center gap-2">
+          <Checkbox id="featured" checked={featured} onCheckedChange={(v) => setFeatured(v === true)} />
+          <Label htmlFor="featured">Featured</Label>
+        </div>
+        <div className="flex items-center gap-2">
+          <Checkbox id="isAccessory" checked={isAccessory} onCheckedChange={(v) => setIsAccessory(v === true)} />
+          <Label htmlFor="isAccessory">Accessory</Label>
+        </div>
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}

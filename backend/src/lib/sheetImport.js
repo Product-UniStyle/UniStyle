@@ -101,7 +101,18 @@ function buildProduct(record, warnings) {
     return null;
   }
 
-  const university = record['university']?.trim() || '';
+  const institution = record['institution']?.trim() || record['university']?.trim() || '';
+
+  const typeRaw = record['type']?.trim().toLowerCase();
+  let institutionType;
+  if (!typeRaw) {
+    institutionType = 'university';
+  } else if (['university', 'school'].includes(typeRaw)) {
+    institutionType = typeRaw;
+  } else {
+    institutionType = 'university';
+    warnings.push(`"${name}": unrecognized type "${record['type']}", defaulted to "university".`);
+  }
 
   const genderRaw = record['gender']?.trim().toLowerCase();
   const gender = genderRaw
@@ -144,11 +155,13 @@ function buildProduct(record, warnings) {
     description,
     price,
     category,
-    university,
+    institution,
+    institutionType,
     gender,
     sizes,
     stock: Number(record['stock']) || 0,
     featured: toBool(record['featured']),
+    isAccessory: toBool(record['accessories']),
     badge: record['badge']?.trim() || undefined,
   };
 

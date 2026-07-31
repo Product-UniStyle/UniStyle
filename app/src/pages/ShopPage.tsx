@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { X, Filter, Grid3X3, LayoutGrid, LayoutList, ChevronDown, ChevronRight } from 'lucide-react';
+import { Link, useSearchParams, useLocation } from 'react-router-dom';
+import { X, Filter, Grid3X3, LayoutGrid, LayoutList, ChevronDown, ChevronRight, Search } from 'lucide-react';
 import type { Product, ProductColor } from '@/data/products';
 import { useProducts } from '@/hooks/useProducts';
 import { useCart } from '@/context/CartContext';
@@ -16,8 +16,6 @@ const sortOptions = [
   { label: 'Price, low to high', value: 'price-asc' },
   { label: 'Price, high to low', value: 'price-desc' },
 ];
-
-const ACCESSORY_CATEGORIES = ['Badges', 'Bagpack', 'Beanies', 'Bottles', 'Crests', 'Mugs', 'Scarfs', 'Tote Bags'];
 
 const CLOTHING_ORDER = ['Hoodies', 'Sweatshirts', 'Tshirts', 'Joggers', 'Caps'];
 const CATEGORY_LABELS: Record<string, string> = { Tshirts: 'T-Shirts' };
@@ -150,8 +148,21 @@ function ProductCard({ product, color }: { product: Product; color?: ProductColo
 
 export function ShopPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  // Keyed on this history entry so a fresh visit (new nav) never accidentally
+  // reuses another visit's saved position, but the browser Back button — which
+  // returns to this exact entry — reliably finds it again.
+  const scrollStateKey = `shop-scroll:${location.key}`;
   const sectionRef = useRef<HTMLDivElement>(null);
   const { products, loading } = useProducts();
+
+  // Which categories currently contain at least one accessory-flagged product —
+  // computed from live product data instead of a hardcoded category list, so
+  // adding a new accessory type never requires a code change.
+  const accessoryCategories = useMemo(
+    () => Array.from(new Set(products.filter(p => p.isAccessory).map(p => p.category).filter(Boolean))),
+    [products]
+  );
 
   // The URL is the single source of truth for every filter — not a separate
   // useState mirror — so the browser back/forward buttons, the navbar's active-link
@@ -174,13 +185,13 @@ export function ShopPage() {
   const selectedCategories = useMemo(() => {
     const raw = getParamList('category');
     if (raw.includes('Accessories')) {
-      return Array.from(new Set([...raw.filter(c => c !== 'Accessories'), ...ACCESSORY_CATEGORIES]));
+      return Array.from(new Set([...raw.filter(c => c !== 'Accessories'), ...accessoryCategories]));
     }
     return raw;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [searchParams, accessoryCategories]);
   const selectedGenders = useMemo(() => getParamList('gender'), [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
-  const selectedUniversities = useMemo(() => getParamList('university'), [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
+  const selectedInstitutions = useMemo(() => getParamList('institution'), [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
   const selectedColors = useMemo(() => getParamList('color'), [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
   const selectedSizes = useMemo(() => getParamList('size'), [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
   const selectedAvailability = useMemo(() => getParamList('availability'), [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -191,19 +202,53 @@ export function ShopPage() {
   const [sortOpen, setSortOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [accessoriesOpen, setAccessoriesOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const PAGE_SIZE = 100;
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem(scrollStateKey);
+      return saved ? JSON.parse(saved).page ?? 1 : 1;
+    } catch {
+      return 1;
+    }
+  });
+  const pageRef = useRef(page);
+  useEffect(() => { pageRef.current = page; }, [page]);
+  const isFirstFilterEffectRunRef = useRef(true);
+  const scrollRestoredRef = useRef(false);
+
+  // Tracks the live scroll position continuously (not just at unmount time) — some
+  // cleanup that runs during route transition (e.g. the GSAP scroll-trigger teardown
+  // below) resets window.scrollY to 0 before our own unmount cleanup gets a chance to
+  // read it, so reading window.scrollY fresh at unmount is unreliable. This ref always
+  // holds the last real position while the user was actually still on this page.
+  const lastScrollYRef = useRef(0);
+  useEffect(() => {
+    const onScroll = () => { lastScrollYRef.current = window.scrollY; };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    // Freeze the scroll position on the click itself (capture phase — runs before
+    // React Router's own Link click handling), not just on 'scroll' events: something
+    // during route-transition teardown resets window.scrollY to 0 and dispatches a
+    // real 'scroll' event for it too, which would otherwise stomp the ref right along
+    // with window.scrollY. Capturing at click time is strictly earlier than that reset.
+    const onClickCapture = () => { lastScrollYRef.current = window.scrollY; };
+    document.addEventListener('click', onClickCapture, true);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      document.removeEventListener('click', onClickCapture, true);
+    };
+  }, []);
 
   // Auto-expand the accessories subpanel when one of its subcategories is active
   // in the URL (e.g. arriving via a header link), without fighting a manual toggle.
   useEffect(() => {
-    if (selectedCategories.some(c => ACCESSORY_CATEGORIES.includes(c))) setAccessoriesOpen(true);
+    if (selectedCategories.some(c => accessoryCategories.includes(c))) setAccessoriesOpen(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [searchParams, accessoryCategories]);
 
-  const universities = useMemo(
-    () => Array.from(new Set(products.map(p => p.university).filter((u): u is string => !!u))).sort(),
+  const institutions = useMemo(
+    () => Array.from(new Set(products.map(p => p.institution).filter((u): u is string => !!u))).sort(),
     [products]
   );
 
@@ -213,13 +258,13 @@ export function ShopPage() {
   );
 
   const accessorySubcategories = useMemo(
-    () => categories.filter(c => ACCESSORY_CATEGORIES.includes(c)),
-    [categories]
+    () => categories.filter(c => accessoryCategories.includes(c)),
+    [categories, accessoryCategories]
   );
 
   const otherCategories = useMemo(
-    () => categories.filter(c => !ACCESSORY_CATEGORIES.includes(c)),
-    [categories]
+    () => categories.filter(c => !accessoryCategories.includes(c)),
+    [categories, accessoryCategories]
   );
 
   const sortedClothingCategories = useMemo(() => {
@@ -263,7 +308,7 @@ export function ShopPage() {
     let r = source;
     if (opts.genders?.length) r = r.filter(p => p.gender?.some(g => opts.genders!.includes(g)));
     if (opts.cats?.length) r = r.filter(p => opts.cats!.includes(p.category));
-    if (opts.unis?.length) r = r.filter(p => !!p.university && opts.unis!.includes(p.university));
+    if (opts.unis?.length) r = r.filter(p => !!p.institution && opts.unis!.includes(p.institution));
     if (opts.colors?.length) r = r.filter(p => p.colors?.some(c => opts.colors!.includes(c.name)));
     if (opts.sizes?.length) r = r.filter(p => p.sizes?.some(s => opts.sizes!.includes(s)));
     if (opts.avail?.length) r = r.filter(p => opts.avail!.includes(p.inStock ? 'in' : 'out'));
@@ -272,18 +317,18 @@ export function ShopPage() {
   };
 
   // Base pools for each filter group (all active filters EXCEPT that group)
-  const genderBase = useMemo(() => applyFilters(products, { cats: selectedCategories, unis: selectedUniversities, colors: selectedColors, sizes: selectedSizes, avail: selectedAvailability, price: priceRange }), [products, selectedCategories, selectedUniversities, selectedColors, selectedSizes, selectedAvailability, priceRange]);
-  const categoryBase = useMemo(() => applyFilters(products, { genders: selectedGenders, unis: selectedUniversities, colors: selectedColors, sizes: selectedSizes, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedUniversities, selectedColors, selectedSizes, selectedAvailability, priceRange]);
-  const universityBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, colors: selectedColors, sizes: selectedSizes, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedCategories, selectedColors, selectedSizes, selectedAvailability, priceRange]);
-  const sizeBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, unis: selectedUniversities, colors: selectedColors, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedCategories, selectedUniversities, selectedColors, selectedAvailability, priceRange]);
-  const availBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, unis: selectedUniversities, colors: selectedColors, sizes: selectedSizes, price: priceRange }), [products, selectedGenders, selectedCategories, selectedUniversities, selectedColors, selectedSizes, priceRange]);
-  const colorBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, unis: selectedUniversities, sizes: selectedSizes, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedCategories, selectedUniversities, selectedSizes, selectedAvailability, priceRange]);
+  const genderBase = useMemo(() => applyFilters(products, { cats: selectedCategories, unis: selectedInstitutions, colors: selectedColors, sizes: selectedSizes, avail: selectedAvailability, price: priceRange }), [products, selectedCategories, selectedInstitutions, selectedColors, selectedSizes, selectedAvailability, priceRange]);
+  const categoryBase = useMemo(() => applyFilters(products, { genders: selectedGenders, unis: selectedInstitutions, colors: selectedColors, sizes: selectedSizes, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedInstitutions, selectedColors, selectedSizes, selectedAvailability, priceRange]);
+  const institutionBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, colors: selectedColors, sizes: selectedSizes, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedCategories, selectedColors, selectedSizes, selectedAvailability, priceRange]);
+  const sizeBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, unis: selectedInstitutions, colors: selectedColors, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedCategories, selectedInstitutions, selectedColors, selectedAvailability, priceRange]);
+  const availBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, unis: selectedInstitutions, colors: selectedColors, sizes: selectedSizes, price: priceRange }), [products, selectedGenders, selectedCategories, selectedInstitutions, selectedColors, selectedSizes, priceRange]);
+  const colorBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, unis: selectedInstitutions, sizes: selectedSizes, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedCategories, selectedInstitutions, selectedSizes, selectedAvailability, priceRange]);
 
   const filteredProducts = useMemo(() => {
     let result = [...products];
     if (selectedGenders.length) result = result.filter(p => p.gender?.some(g => selectedGenders.includes(g)));
     if (selectedCategories.length) result = result.filter(p => selectedCategories.includes(p.category));
-    if (selectedUniversities.length) result = result.filter(p => !!p.university && selectedUniversities.includes(p.university));
+    if (selectedInstitutions.length) result = result.filter(p => !!p.institution && selectedInstitutions.includes(p.institution));
     if (selectedColors.length) result = result.filter(p => p.colors?.some(c => selectedColors.includes(c.name)));
     if (selectedSizes.length) result = result.filter(p => p.sizes?.some(s => selectedSizes.includes(s)));
     if (selectedAvailability.length) {
@@ -293,6 +338,14 @@ export function ShopPage() {
       const effectivePrice = p.salePrice || p.price;
       return effectivePrice >= priceRange[0] && effectivePrice <= priceRange[1];
     });
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      result = result.filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        p.description.toLowerCase().includes(q) ||
+        p.category.toLowerCase().includes(q)
+      );
+    }
     switch (sort) {
       case 'az': result.sort((a, b) => a.name.localeCompare(b.name)); break;
       case 'za': result.sort((a, b) => b.name.localeCompare(a.name)); break;
@@ -301,7 +354,7 @@ export function ShopPage() {
       default: break;
     }
     return result;
-  }, [products, selectedGenders, selectedCategories, selectedUniversities, selectedColors, selectedSizes, selectedAvailability, priceRange, sort]);
+  }, [products, selectedGenders, selectedCategories, selectedInstitutions, selectedColors, selectedSizes, selectedAvailability, priceRange, searchQuery, sort]);
 
   // One grid tile per color variant (so a 3-color product shows 3 tiles). When a
   // color filter is active, only the matching color variant(s) are shown per
@@ -326,16 +379,56 @@ export function ShopPage() {
 
   // Jump back to page 1 whenever filters/sort change the result set, and clamp
   // down if the current page no longer exists (e.g. a filter shrinks the list).
+  // Skipped on the very first run so a restored page (from Back navigation) isn't
+  // immediately stomped back to 1 before the user even touches a filter.
   useEffect(() => {
+    if (isFirstFilterEffectRunRef.current) {
+      isFirstFilterEffectRunRef.current = false;
+      return;
+    }
     setPage(1);
-  }, [selectedGenders, selectedCategories, selectedUniversities, selectedColors, selectedSizes, selectedAvailability, priceRange, sort]);
+  }, [selectedGenders, selectedCategories, selectedInstitutions, selectedColors, selectedSizes, selectedAvailability, priceRange, searchQuery, sort]);
 
   useEffect(() => {
+    // Skip while products are still loading — gridEntries/totalPages are both
+    // artificially 1 at that point, which would otherwise clamp a restored page back down.
+    if (loading) return;
     if (page > totalPages) setPage(totalPages);
-  }, [totalPages]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [totalPages, loading]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Restore scroll position after returning via Back — must wait for products to
+  // finish loading so the page is tall enough to actually scroll to that position.
+  useEffect(() => {
+    if (loading || scrollRestoredRef.current) return;
+    scrollRestoredRef.current = true;
+    try {
+      const saved = sessionStorage.getItem(scrollStateKey);
+      if (saved) {
+        const { scrollY } = JSON.parse(saved);
+        if (typeof scrollY === 'number') window.scrollTo(0, scrollY);
+      }
+    } catch {
+      // ignore malformed/unavailable sessionStorage
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
+
+  // Save scroll position + page just before leaving this page (e.g. clicking into
+  // a product), so the Back button can restore exactly where the user was.
+  useEffect(() => {
+    return () => {
+      try {
+        sessionStorage.setItem(scrollStateKey, JSON.stringify({ page: pageRef.current, scrollY: lastScrollYRef.current }));
+      } catch {
+        // ignore unavailable sessionStorage (e.g. private browsing quota)
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const clearFilters = () => {
     setPriceRange([0, 9999]);
+    setSearchQuery('');
     setSearchParams({}, { replace: true });
   };
 
@@ -347,8 +440,8 @@ export function ShopPage() {
     setParamList('category', selectedCategories.includes(cat) ? selectedCategories.filter(c => c !== cat) : [...selectedCategories, cat]);
   };
 
-  const toggleUniversity = (uni: string) => {
-    setParamList('university', selectedUniversities.includes(uni) ? selectedUniversities.filter(u => u !== uni) : [...selectedUniversities, uni]);
+  const toggleInstitution = (uni: string) => {
+    setParamList('institution', selectedInstitutions.includes(uni) ? selectedInstitutions.filter(u => u !== uni) : [...selectedInstitutions, uni]);
   };
 
   const toggleSize = (size: string) => {
@@ -420,16 +513,16 @@ export function ShopPage() {
                   </div>
                 </div>
 
-                {/* Universities */}
-                {universities.length > 0 && (
+                {/* Institutions */}
+                {institutions.length > 0 && (
                   <div className="mb-6">
-                    <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Universities</h4>
+                    <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Institutions</h4>
                     <div className="space-y-2">
-                      {universities.map(uni => {
-                        const count = universityBase.filter(p => p.university === uni).length;
+                      {institutions.map(uni => {
+                        const count = institutionBase.filter(p => p.institution === uni).length;
                         return (
                           <label key={uni} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
-                            <input type="checkbox" checked={selectedUniversities.includes(uni)} onChange={() => toggleUniversity(uni)} className="accent-[#1A1A1A]" />
+                            <input type="checkbox" checked={selectedInstitutions.includes(uni)} onChange={() => toggleInstitution(uni)} className="accent-[#1A1A1A]" />
                             {uni} ({count})
                           </label>
                         );
@@ -473,7 +566,7 @@ export function ShopPage() {
                               }}
                               className="accent-[#1A1A1A]"
                             />
-                            Accessories ({categoryBase.filter(p => ACCESSORY_CATEGORIES.includes(p.category)).length})
+                            Accessories ({categoryBase.filter(p => accessoryCategories.includes(p.category)).length})
                           </label>
                           <button
                             type="button"
@@ -579,9 +672,26 @@ export function ShopPage() {
           <div className="flex-1 min-w-0">
             {/* Toolbar */}
             <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-              <p className="text-sm text-[#666]">
-                Showing {pagedEntries.length} of {gridEntries.length} products
-              </p>
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2 bg-white border border-[#E5E5E5] rounded-md px-3 py-2 w-[260px] shrink-0">
+                  <Search size={16} className="text-[#999] shrink-0" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search products..."
+                    className="flex-1 min-w-0 bg-transparent outline-none text-sm text-[#1A1A1A] placeholder:text-[#999]"
+                  />
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery('')} aria-label="Clear search" className="text-[#999] hover:text-[#1A1A1A] shrink-0">
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+                <p className="text-sm text-[#666] whitespace-nowrap">
+                  Showing {pagedEntries.length} of {gridEntries.length} products
+                </p>
+              </div>
               <div className="flex items-center gap-4">
                 <div className="hidden md:flex items-center gap-1">
                   <button onClick={() => setGridCols(2)} className={`p-2 ${gridCols === 2 ? 'text-[#1A1A1A]' : 'text-[#999]'}`}><LayoutGrid size={18} /></button>
@@ -630,14 +740,14 @@ export function ShopPage() {
                     <p className="text-sm text-[#666]">Page {page} of {totalPages}</p>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => setPage((p) => p - 1)}
+                        onClick={() => { setPage((p) => p - 1); window.scrollTo(0, 0); }}
                         disabled={page <= 1}
                         className="text-sm border border-[#E5E5E5] px-4 py-2 hover:border-[#1A1A1A] transition-colors disabled:opacity-40 disabled:hover:border-[#E5E5E5] disabled:cursor-not-allowed"
                       >
                         Previous
                       </button>
                       <button
-                        onClick={() => setPage((p) => p + 1)}
+                        onClick={() => { setPage((p) => p + 1); window.scrollTo(0, 0); }}
                         disabled={page >= totalPages}
                         className="text-sm border border-[#E5E5E5] px-4 py-2 hover:border-[#1A1A1A] transition-colors disabled:opacity-40 disabled:hover:border-[#E5E5E5] disabled:cursor-not-allowed"
                       >

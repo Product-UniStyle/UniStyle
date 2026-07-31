@@ -49,7 +49,7 @@ function WishlistCard({ product }: { product: Product }) {
         </div>
       </div>
       <div className="mt-3">
-        {product.university && <p className="text-xs text-[#999]">{product.university}</p>}
+        {product.institution && <p className="text-xs text-[#999]">{product.institution}</p>}
         <Link to={`/product/${product.slug}`} className="text-sm font-medium text-[#1A1A1A] hover:underline">{product.name}</Link>
         <div className="flex items-center gap-2 mt-1">
           {product.salePrice ? (
@@ -117,7 +117,7 @@ function RecommendedCard({ product }: { product: Product }) {
         </button>
       </div>
       <div className="mt-3">
-        {product.university && <p className="text-xs text-[#999]">{product.university}</p>}
+        {product.institution && <p className="text-xs text-[#999]">{product.institution}</p>}
         <Link to={`/product/${product.slug}`} className="text-sm font-medium text-[#1A1A1A] hover:underline">{product.name}</Link>
         <div className="flex items-center gap-2 mt-1">
           {product.salePrice ? (
@@ -140,7 +140,7 @@ export function WishlistPage() {
   const { products: allProducts } = useProducts();
 
   const [selectedGenders, setSelectedGenders] = useState<string[]>([]);
-  const [selectedUniversities, setSelectedUniversities] = useState<string[]>([]);
+  const [selectedInstitutions, setSelectedInstitutions] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedAvailability, setSelectedAvailability] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 9999]);
@@ -148,8 +148,8 @@ export function WishlistPage() {
   const [sortOpen, setSortOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const universities = useMemo(
-    () => Array.from(new Set(items.map(p => p.university).filter((u): u is string => !!u))).sort(),
+  const institutions = useMemo(
+    () => Array.from(new Set(items.map(p => p.institution).filter((u): u is string => !!u))).sort(),
     [items]
   );
 
@@ -169,21 +169,21 @@ export function WishlistPage() {
   ) => {
     let r = source;
     if (opts.genders?.length) r = r.filter(p => p.gender?.some(g => opts.genders!.includes(g)));
-    if (opts.unis?.length) r = r.filter(p => !!p.university && opts.unis!.includes(p.university));
+    if (opts.unis?.length) r = r.filter(p => !!p.institution && opts.unis!.includes(p.institution));
     if (opts.cats?.length) r = r.filter(p => opts.cats!.includes(p.category));
     if (opts.avail?.length) r = r.filter(p => opts.avail!.includes(p.inStock ? 'in' : 'out'));
     if (opts.price) r = r.filter(p => { const ep = p.salePrice || p.price; return ep >= opts.price![0] && ep <= opts.price![1]; });
     return r;
   };
 
-  const genderBase   = useMemo(() => applyFilters(items, { unis: selectedUniversities, cats: selectedCategories, avail: selectedAvailability, price: priceRange }), [items, selectedUniversities, selectedCategories, selectedAvailability, priceRange]);
-  const universityBase = useMemo(() => applyFilters(items, { genders: selectedGenders, cats: selectedCategories, avail: selectedAvailability, price: priceRange }), [items, selectedGenders, selectedCategories, selectedAvailability, priceRange]);
-  const categoryBase = useMemo(() => applyFilters(items, { genders: selectedGenders, unis: selectedUniversities, avail: selectedAvailability, price: priceRange }), [items, selectedGenders, selectedUniversities, selectedAvailability, priceRange]);
-  const availBase    = useMemo(() => applyFilters(items, { genders: selectedGenders, unis: selectedUniversities, cats: selectedCategories, price: priceRange }), [items, selectedGenders, selectedUniversities, selectedCategories, priceRange]);
+  const genderBase   = useMemo(() => applyFilters(items, { unis: selectedInstitutions, cats: selectedCategories, avail: selectedAvailability, price: priceRange }), [items, selectedInstitutions, selectedCategories, selectedAvailability, priceRange]);
+  const institutionBase = useMemo(() => applyFilters(items, { genders: selectedGenders, cats: selectedCategories, avail: selectedAvailability, price: priceRange }), [items, selectedGenders, selectedCategories, selectedAvailability, priceRange]);
+  const categoryBase = useMemo(() => applyFilters(items, { genders: selectedGenders, unis: selectedInstitutions, avail: selectedAvailability, price: priceRange }), [items, selectedGenders, selectedInstitutions, selectedAvailability, priceRange]);
+  const availBase    = useMemo(() => applyFilters(items, { genders: selectedGenders, unis: selectedInstitutions, cats: selectedCategories, price: priceRange }), [items, selectedGenders, selectedInstitutions, selectedCategories, priceRange]);
 
   const clearFilters = () => {
     setSelectedGenders([]);
-    setSelectedUniversities([]);
+    setSelectedInstitutions([]);
     setSelectedCategories([]);
     setSelectedAvailability([]);
     setPriceRange([0, 9999]);
@@ -192,8 +192,8 @@ export function WishlistPage() {
   const toggleGender = (gender: string) => {
     setSelectedGenders(prev => prev.includes(gender) ? prev.filter(g => g !== gender) : [...prev, gender]);
   };
-  const toggleUniversity = (uni: string) => {
-    setSelectedUniversities(prev => prev.includes(uni) ? prev.filter(u => u !== uni) : [...prev, uni]);
+  const toggleInstitution = (uni: string) => {
+    setSelectedInstitutions(prev => prev.includes(uni) ? prev.filter(u => u !== uni) : [...prev, uni]);
   };
   const toggleCategory = (cat: string) => {
     setSelectedCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
@@ -202,7 +202,7 @@ export function WishlistPage() {
   const filteredItems = useMemo(() => {
     let result = [...items];
     if (selectedGenders.length) result = result.filter(p => p.gender?.some(g => selectedGenders.includes(g)));
-    if (selectedUniversities.length) result = result.filter(p => !!p.university && selectedUniversities.includes(p.university));
+    if (selectedInstitutions.length) result = result.filter(p => !!p.institution && selectedInstitutions.includes(p.institution));
     if (selectedCategories.length) result = result.filter(p => selectedCategories.includes(p.category));
     if (selectedAvailability.length) {
       result = result.filter(p => selectedAvailability.includes(p.inStock ? 'in' : 'out'));
@@ -219,7 +219,7 @@ export function WishlistPage() {
       default: break;
     }
     return result;
-  }, [items, selectedGenders, selectedUniversities, selectedCategories, selectedAvailability, priceRange, sort]);
+  }, [items, selectedGenders, selectedInstitutions, selectedCategories, selectedAvailability, priceRange, sort]);
 
   const recommended = useMemo(() => {
     const wishlistIds = new Set(items.map(p => p.id));
@@ -307,16 +307,16 @@ export function WishlistPage() {
                     </div>
                   </div>
 
-                  {/* Universities */}
-                  {universities.length > 0 && (
+                  {/* Institutions */}
+                  {institutions.length > 0 && (
                     <div className="mb-6">
-                      <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Universities</h4>
+                      <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Institutions</h4>
                       <div className="space-y-2">
-                        {universities.map(uni => {
-                          const count = universityBase.filter(p => p.university === uni).length;
+                        {institutions.map(uni => {
+                          const count = institutionBase.filter(p => p.institution === uni).length;
                           return (
                             <label key={uni} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
-                              <input type="checkbox" checked={selectedUniversities.includes(uni)} onChange={() => toggleUniversity(uni)} className="accent-[#1A1A1A]" />
+                              <input type="checkbox" checked={selectedInstitutions.includes(uni)} onChange={() => toggleInstitution(uni)} className="accent-[#1A1A1A]" />
                               {uni} ({count})
                             </label>
                           );

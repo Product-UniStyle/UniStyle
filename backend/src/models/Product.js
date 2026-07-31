@@ -13,13 +13,15 @@ const productSchema = new mongoose.Schema({
   price: { type: Number, required: true }, // cents
   compareAt: Number, // cents
   category: { type: String, required: true },
-  university: { type: String, default: '' },
+  institution: { type: String, default: '' },
+  institutionType: { type: String, enum: ['university', 'school'], default: 'university' },
   gender: { type: [String], enum: ['men', 'women'], default: [] },
   images: { type: [String], default: [] },
   sizes: { type: [String], default: [] },
   colors: { type: [colorSchema], default: [] },
   stock: { type: Number, default: 0 },
   featured: { type: Boolean, default: false },
+  isAccessory: { type: Boolean, default: false },
   rating: Number,
   reviewCount: { type: Number, default: 0 },
   badge: String,

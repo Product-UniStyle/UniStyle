@@ -17,13 +17,15 @@ const productSchema = z.object({
   price: z.number().int().nonnegative(), // cents
   compareAt: z.number().int().nonnegative().optional(),
   category: z.string().min(1),
-  university: z.string().optional(),
+  institution: z.string().optional(),
+  institutionType: z.enum(['university', 'school']).optional(),
   gender: z.array(z.enum(['men', 'women'])).optional(),
   images: z.array(z.string()).default([]),
   sizes: z.array(z.string()).default([]),
   colors: z.array(colorSchema).default([]),
   stock: z.number().int().nonnegative().default(0),
   featured: z.boolean().default(false),
+  isAccessory: z.boolean().default(false),
   rating: z.number().min(0).max(5).optional(),
   reviewCount: z.number().int().nonnegative().optional(),
   badge: z.string().optional(),
@@ -90,24 +92,36 @@ router.post('/import-sheet', requireImportKey, upload.single('file'), async (req
   }
 });
 
-// GET /api/products/categories — distinct category values actually in use
+// GET /api/products/categories — distinct category values actually in use, plus
+// which of those categories currently contain at least one accessory-flagged product,
+// plus the distinct institution names in use, split by institutionType.
 router.get('/categories', async (req, res, next) => {
   try {
-    const categories = await Product.distinct('category');
-    res.json({ categories: categories.filter(Boolean).sort() });
+    const [categories, accessoryCategories, universities, schools] = await Promise.all([
+      Product.distinct('category'),
+      Product.distinct('category', { isAccessory: true }),
+      Product.distinct('institution', { institutionType: 'university' }),
+      Product.distinct('institution', { institutionType: 'school' }),
+    ]);
+    res.json({
+      categories: categories.filter(Boolean).sort(),
+      accessoryCategories: accessoryCategories.filter(Boolean).sort(),
+      universities: universities.filter(Boolean).sort(),
+      schools: schools.filter(Boolean).sort(),
+    });
   } catch (err) {
     next(err);
   }
 });
 
-// GET /api/products?category=&university=&gender=&search=&featured=true&page=1&limit=20
+// GET /api/products?category=&institution=&gender=&search=&featured=true&page=1&limit=20
 router.get('/', async (req, res, next) => {
   try {
-    const { category, university, gender, search, featured, page = 1, limit = 20 } = req.query;
+    const { category, institution, gender, search, featured, page = 1, limit = 20 } = req.query;
 
     const where = {
       ...(category ? { category: String(category) } : {}),
-      ...(university ? { university: String(university) } : {}),
+      ...(institution ? { institution: String(institution) } : {}),
       ...(gender ? { gender: String(gender) } : {}),
       ...(featured ? { featured: featured === 'true' } : {}),
       ...(search

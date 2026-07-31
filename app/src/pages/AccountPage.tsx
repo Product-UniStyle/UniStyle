@@ -396,7 +396,7 @@ export function AccountPage() {
                               <Heart size={14} fill="currentColor" />
                             </button>
                           </div>
-                          {product.university && <p className="text-xs text-[#999] truncate">{product.university}</p>}
+                          {product.institution && <p className="text-xs text-[#999] truncate">{product.institution}</p>}
                           <Link to={`/product/${product.slug}`} className="text-sm font-medium hover:underline truncate block">{product.name}</Link>
                           <p className="text-sm font-semibold mt-0.5">AED {(product.salePrice ?? product.price).toFixed(2)}</p>
                         </div>
@@ -433,7 +433,7 @@ export function AccountPage() {
                             <Heart size={14} fill="currentColor" />
                           </button>
                         </div>
-                        {product.university && <p className="text-xs text-[#999] truncate">{product.university}</p>}
+                        {product.institution && <p className="text-xs text-[#999] truncate">{product.institution}</p>}
                         <Link to={`/product/${product.slug}`} className="text-sm font-medium hover:underline truncate block">{product.name}</Link>
                         <p className="text-sm font-semibold mt-0.5">AED {(product.salePrice ?? product.price).toFixed(2)}</p>
                       </div>

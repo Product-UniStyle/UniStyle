@@ -13,7 +13,9 @@ export interface Product {
   description: string;
   images: string[];
   category: string;
-  university?: string;
+  institution?: string;
+  institutionType?: 'university' | 'school';
+  isAccessory?: boolean;
   colors?: ProductColor[];
   sizes?: string[];
   inStock: boolean;

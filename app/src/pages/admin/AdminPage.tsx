@@ -142,12 +142,14 @@ export function AdminPage() {
       Name: p.name,
       Slug: p.slug,
       Category: p.category,
-      University: p.university ?? '',
+      Institution: p.institution ?? '',
+      Type: p.institutionType ?? '',
       Price: (p.price / 100).toFixed(2),
       'Compare At': p.compareAt ? (p.compareAt / 100).toFixed(2) : '',
       Stock: p.stock,
       Status: p.stock > 0 ? 'In stock' : 'Out of stock',
       Featured: p.featured ? 'Yes' : 'No',
+      Accessory: p.isAccessory ? 'Yes' : 'No',
       Rating: p.rating ?? '',
       Reviews: p.reviewCount ?? '',
       Badge: p.badge ?? '',
@@ -276,11 +278,11 @@ export function AdminPage() {
                           <TableCell>
                             {p.compareAt ? (
                               <span className="flex items-center gap-1.5">
-                                <span>${(p.price / 100).toFixed(2)}</span>
-                                <span className="text-[#999] line-through text-xs">${(p.compareAt / 100).toFixed(2)}</span>
+                                <span>AED {(p.price / 100).toFixed(2)}</span>
+                                <span className="text-[#999] line-through text-xs">AED {(p.compareAt / 100).toFixed(2)}</span>
                               </span>
                             ) : (
-                              `$${(p.price / 100).toFixed(2)}`
+                              `AED ${(p.price / 100).toFixed(2)}`
                             )}
                           </TableCell>
                           <TableCell>{p.stock}</TableCell>
@@ -338,7 +340,18 @@ export function AdminPage() {
       </main>
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="w-full max-w-[95vw] sm:max-w-[600px]">
+        <DialogContent
+          className="w-full max-w-[95vw] sm:max-w-[600px] max-h-[90vh] overflow-y-auto"
+          onInteractOutside={(e) => {
+            // The Category/Type <Select> popups render in a portal on document.body,
+            // outside this dialog's DOM subtree. Clicking them (or a fast click right
+            // after opening one) can race with Radix's outside-click detection and
+            // close this whole Add/Edit modal. This form has explicit Cancel/X controls,
+            // so backdrop-dismiss isn't needed — just disable it outright to sidestep
+            // the race entirely rather than trying to special-case every Select target.
+            e.preventDefault();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit product' : 'Add product'}</DialogTitle>
             <DialogDescription>

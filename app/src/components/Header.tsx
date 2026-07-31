@@ -1,64 +1,33 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Search, User, Heart, ShoppingBag, X, Menu, ChevronDown } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
+import { api } from '@/lib/api';
 
-const menItems = [
-  { label: 'View All Men', href: '/shop?gender=men' },
-  { label: 'Hoodies', href: '/shop?gender=men&category=Hoodies' },
-  { label: 'T-Shirts', href: '/shop?gender=men&category=T-Shirt' },
-  { label: 'Sweatshirts', href: '/shop?gender=men&category=SweatShirt' },
-  { label: 'Bottoms', href: '/shop?gender=men&category=Bottom' },
-  { label: 'Caps', href: '/shop?gender=men&category=Caps' },
-];
-
-const womenItems = [
-  { label: 'View All Women', href: '/shop?gender=women' },
-  { label: 'Hoodies', href: '/shop?gender=women&category=Hoodies' },
-  { label: 'T-Shirts', href: '/shop?gender=women&category=T-Shirt' },
-  { label: 'Sweatshirts', href: '/shop?gender=women&category=SweatShirt' },
-  { label: 'Bottoms', href: '/shop?gender=women&category=Bottom' },
-  { label: 'Dresses', href: '/shop?gender=women&category=Dresses' },
-];
-
-const universityItems = [
-  { label: 'View All Universities', href: '/shop' },
-  { label: 'De Montfort University', href: '/shop?university=De+Montfort+University' },
-  { label: 'Heriot-Watt University', href: '/shop?university=Heriot-Watt+University' },
-  { label: 'Middlesex University', href: '/shop?university=Middlesex+University' },
-  { label: 'New York University', href: '/shop?university=New+York+University' },
-  { label: 'University of Birmingham', href: '/shop?university=University+of+Birmingham' },
-  { label: 'University of Wollongong', href: '/shop?university=University+of+Wollongong' },
-];
-
-const accessoriesItems = [
-  { label: 'View All Accessories', href: '/shop?category=Accessories' },
-  { label: 'Badges', href: '/shop?category=Badges' },
-  { label: 'Bagpack', href: '/shop?category=Bagpack' },
-  { label: 'Beanies', href: '/shop?category=Beanies' },
-  { label: 'Bottles', href: '/shop?category=Bottles' },
-  { label: 'Crests', href: '/shop?category=Crests' },
-  { label: 'Mugs', href: '/shop?category=Mugs' },
-  { label: 'Scarfs', href: '/shop?category=Scarfs' },
-  { label: 'Tote Bags', href: '/shop?category=Tote+Bags' },
-];
-
-const ACCESSORY_CATEGORY_VALUES = ['Badges', 'Bagpack', 'Beanies', 'Bottles', 'Crests', 'Mugs', 'Scarfs', 'Tote Bags'];
-
-function isNavLinkActive(label: string, href: string, pathname: string, search: string): boolean {
+function isNavLinkActive(
+  label: string,
+  href: string,
+  pathname: string,
+  search: string,
+  accessoryCategories: string[],
+  universities: string[],
+  schools: string[]
+): boolean {
   const params = new URLSearchParams(search);
   switch (label) {
-    case 'Men':
-      return pathname === '/shop' && params.get('gender') === 'men';
-    case 'Women':
-      return pathname === '/shop' && params.get('gender') === 'women';
-    case 'Universities':
-      return pathname === '/shop' && params.has('university');
+    case 'Universities': {
+      const institution = params.get('institution');
+      return pathname === '/shop' && !!institution && universities.includes(institution);
+    }
+    case 'Schools': {
+      const institution = params.get('institution');
+      return pathname === '/shop' && !!institution && schools.includes(institution);
+    }
     case 'Accessories': {
       if (pathname !== '/shop') return false;
       const category = params.get('category');
-      return category === 'Accessories' || (!!category && ACCESSORY_CATEGORY_VALUES.includes(category));
+      return category === 'Accessories' || (!!category && accessoryCategories.includes(category));
     }
     default:
       return `${pathname}${search}` === href;
@@ -72,18 +41,6 @@ type NavItem = {
   href: string;
   dropdown?: DropdownItem[];
 };
-
-const navLinks: NavItem[] = [
-  // { label: 'Home', href: '/' },
-  // { label: 'Shop', href: '/shop' },
-  { label: 'Men', href: '/shop?gender=men', dropdown: menItems },
-  { label: 'Women', href: '/shop?gender=women', dropdown: womenItems },
-  { label: 'Universities', href: '/shop', dropdown: universityItems },
-  { label: 'Accessories', href: '/shop?category=Accessories', dropdown: accessoriesItems },
-  // { label: 'Product', href: '/shop' },
-  // { label: 'Blog', href: '/blog' },
-  // { label: 'Featured', href: '/shop' },
-];
 
 function MobileMenu({ navLinks, onClose }: { navLinks: NavItem[]; onClose: () => void }) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -175,6 +132,40 @@ export function Header() {
     setSearchOpen(false);
   }, [location.pathname]);
 
+  const [accessoryCategories, setAccessoryCategories] = useState<string[]>([]);
+  const [universities, setUniversities] = useState<string[]>([]);
+  const [schools, setSchools] = useState<string[]>([]);
+  useEffect(() => {
+    api.getCategories()
+      .then(({ accessoryCategories, universities, schools }) => {
+        setAccessoryCategories(accessoryCategories);
+        setUniversities(universities);
+        setSchools(schools);
+      })
+      .catch(() => {});
+  }, []);
+
+  const accessoriesItems = useMemo<DropdownItem[]>(() => [
+    { label: 'View All Accessories', href: '/shop?category=Accessories' },
+    ...accessoryCategories.map(c => ({ label: c, href: `/shop?category=${encodeURIComponent(c)}` })),
+  ], [accessoryCategories]);
+
+  const universityItems = useMemo<DropdownItem[]>(() => [
+    { label: 'View All Universities', href: '/shop' },
+    ...universities.map(u => ({ label: u, href: `/shop?institution=${encodeURIComponent(u)}` })),
+  ], [universities]);
+
+  const schoolItems = useMemo<DropdownItem[]>(() => [
+    { label: 'View All Schools', href: '/shop' },
+    ...schools.map(s => ({ label: s, href: `/shop?institution=${encodeURIComponent(s)}` })),
+  ], [schools]);
+
+  const navLinks: NavItem[] = useMemo(() => [
+    { label: 'Universities', href: '/shop', dropdown: universityItems },
+    { label: 'Schools', href: '/shop', dropdown: schoolItems },
+    { label: 'Accessories', href: '/shop?category=Accessories', dropdown: accessoriesItems },
+  ], [universityItems, schoolItems, accessoriesItems]);
+
   const handleMouseEnter = (index: number) => {
     if (dropdownTimeout.current) clearTimeout(dropdownTimeout.current);
     setActiveDropdown(index);
@@ -211,7 +202,7 @@ export function Header() {
                 <Link
                   to={link.href}
                   className={`flex items-center gap-1 text-sm font-medium tracking-wide pb-1 border-b-2 transition-colors ${
-                    isNavLinkActive(link.label, link.href, location.pathname, location.search)
+                    isNavLinkActive(link.label, link.href, location.pathname, location.search, accessoryCategories, universities, schools)
                       ? 'border-[#1A1A1A] text-[#1A1A1A]'
                       : 'border-transparent text-[#1A1A1A] hover:border-[#1A1A1A]'
                   }`}
@@ -231,7 +222,7 @@ export function Header() {
                     }}
                   >
                     <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent pointer-events-none" />
-                    <div className="py-2">
+                    <div className="py-2 max-h-[320px] overflow-y-auto">
                       {link.dropdown.map((item) => (
                         <Link
                           key={item.label}
@@ -250,6 +241,7 @@ export function Header() {
 
           {/* Right Icons */}
           <div className="flex items-center gap-4">
+            {/* Header search icon — commented out per request, search now lives on the shop page. Do not delete.
             <button
               onClick={() => setSearchOpen(!searchOpen)}
               className="p-1 hover:opacity-70 transition-opacity"
@@ -257,6 +249,7 @@ export function Header() {
             >
               <Search size={20} strokeWidth={1.5} />
             </button>
+            */}
             <Link to="/account" className="p-1 hover:opacity-70 transition-opacity" aria-label="Account">
               <User size={20} strokeWidth={1.5} />
             </Link>
@@ -287,7 +280,7 @@ export function Header() {
         </div>
       </header>
 
-      {/* Search Modal */}
+      {/* Search Modal — commented out per request, search now lives on the shop page. Do not delete.
       {searchOpen && (
         <div
           className="fixed inset-0 z-[55] flex items-start justify-center pt-24 px-4"
@@ -304,7 +297,6 @@ export function Header() {
             }}
             onClick={e => e.stopPropagation()}
           >
-            {/* Specular rim */}
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent rounded-t-3xl pointer-events-none" />
             <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-white/25 to-transparent rounded-t-3xl pointer-events-none" />
 
@@ -341,6 +333,7 @@ export function Header() {
           </div>
         </div>
       )}
+      */}
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (

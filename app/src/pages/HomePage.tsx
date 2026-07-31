@@ -224,7 +224,7 @@ function UniversitiesSection() {
           {universities.map(u => (
             <Link
               key={u.name}
-              to={`/shop?university=${encodeURIComponent(u.name)}`}
+              to={`/shop?institution=${encodeURIComponent(u.name)}`}
               className="group bg-[#F0EDE8] aspect-square flex items-center justify-center p-6 hover:bg-white transition-colors"
             >
               <img

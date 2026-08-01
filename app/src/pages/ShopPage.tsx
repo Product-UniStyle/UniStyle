@@ -382,13 +382,19 @@ export function ShopPage() {
   // down if the current page no longer exists (e.g. a filter shrinks the list).
   // Skipped on the very first run so a restored page (from Back navigation) isn't
   // immediately stomped back to 1 before the user even touches a filter.
+  // Keyed off serialized filter *values*, not the raw arrays: selectedCategories
+  // (via accessoryCategories) gets a brand-new array reference once useProducts'
+  // async fetch resolves, even when its contents haven't actually changed — a plain
+  // reference-based dep list would treat that as a real filter change and reset
+  // the page, silently overriding a page restored from Back navigation.
+  const filterSignature = JSON.stringify([selectedGenders, selectedCategories, selectedInstitutions, selectedColors, selectedSizes, selectedAvailability, priceRange, searchQuery, sort]);
   useEffect(() => {
     if (isFirstFilterEffectRunRef.current) {
       isFirstFilterEffectRunRef.current = false;
       return;
     }
     setPage(1);
-  }, [selectedGenders, selectedCategories, selectedInstitutions, selectedColors, selectedSizes, selectedAvailability, priceRange, searchQuery, sort]);
+  }, [filterSignature]);
 
   useEffect(() => {
     // Skip while products are still loading — gridEntries/totalPages are both

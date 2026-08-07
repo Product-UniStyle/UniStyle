@@ -30,12 +30,12 @@ function HeroSection() {
 }
 
 const categoryTiles = [
-  { name: 'Hoodies', image: '/Hoodies.jpeg' },
-  { name: 'Sweatshirts', image: '/SweatShirt.jpeg' },
-  { name: 'T-Shirts', image: '/T-Shirt.jpeg' },
-  { name: 'Bottoms', image: '/Bottom.jpeg' },
-  { name: 'Caps', image: '/Caps.jpeg' },
-  { name: 'Accessories', image: '/Accesories.jpeg' },
+  { name: 'Hoodies', category: 'Hoodie', image: '/Hoodies.jpeg' },
+  { name: 'Sweatshirts', category: 'Sweatshirt', image: '/SweatShirt.jpeg' },
+  { name: 'T-Shirts', category: 'T-Shirt', image: '/T-Shirt.jpeg' },
+  { name: 'Bottoms', category: 'Bottoms', image: '/Bottom.jpeg' },
+  { name: 'Caps', category: 'Caps', image: '/Caps.jpeg' },
+  { name: 'Accessories', category: 'Accessories', image: '/Accesories.jpeg' },
 ];
 
 function CategoriesSection() {
@@ -48,7 +48,7 @@ function CategoriesSection() {
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
           {categoryTiles.map(c => (
-            <Link key={c.name} to={`/shop?category=${c.name}`} className="group block text-center">
+            <Link key={c.name} to={`/shop?category=${encodeURIComponent(c.category)}`} className="group block text-center">
               <div className="bg-[#F5F5F5] overflow-hidden mb-6">
                 <img
                   src={c.image}
@@ -207,7 +207,7 @@ function BestSellersSection() {
 const universities = [
   { name: 'University of Birmingham', logo: '/University-of-Birmingham.jpeg' },
   { name: 'Middlesex University', logo: '/Middlesex-University.jpeg' },
-  { name: 'Heriot Watt University', logo: '/Heriot-Watt-University.jpeg' },
+  { name: 'Heriot-Watt University', logo: '/Heriot-Watt-University.jpeg' },
   { name: 'University of Wollongong', logo: '/University-of-Wollongong.jpeg' },
   { name: 'New York University', logo: '/New-York-University.jpeg' },
   { name: 'De Montfort University', logo: '/De-Montfort-University.jpeg' },

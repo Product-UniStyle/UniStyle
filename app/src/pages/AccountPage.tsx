@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   Home, Package, Heart, MapPin, CreditCard, User, Shield, Star, LogOut,
-  ChevronRight, Lock, Smartphone, Monitor, Calendar, Mail, Pencil,
+  ChevronRight, Lock, Smartphone, Monitor, Calendar, Mail, Pencil, Eye, EyeOff,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useWishlist } from '@/context/WishlistContext';
@@ -23,6 +23,7 @@ export function AccountPage() {
   const { items: wishlistItems, totalItems: wishlistTotal, removeFromWishlist } = useWishlist();
   const [searchParams, setSearchParams] = useSearchParams();
   const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [showPassword, setShowPassword] = useState(false);
   const activeTab = searchParams.get('tab') || 'overview';
 
   const setActiveTab = (tab: string) => {
@@ -86,14 +87,25 @@ export function AccountPage() {
                 onChange={e => setFormData({ ...formData, email: e.target.value })}
                 className="w-full border border-[#E5E5E5] px-4 py-3 text-sm mb-4 outline-none focus:border-[#1A1A1A] transition-colors"
               />
-              <input
-                type="password"
-                placeholder="Password"
-                required
-                value={formData.password}
-                onChange={e => setFormData({ ...formData, password: e.target.value })}
-                className="w-full border border-[#E5E5E5] px-4 py-3 text-sm mb-6 outline-none focus:border-[#1A1A1A] transition-colors"
-              />
+              <div className="relative mb-6">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Password"
+                  required
+                  value={formData.password}
+                  onChange={e => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full border border-[#E5E5E5] px-4 py-3 pr-11 text-sm outline-none focus:border-[#1A1A1A] transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  tabIndex={-1}
+                  className="absolute right-0 top-0 h-full w-11 flex items-center justify-center text-[#999] hover:text-[#1A1A1A]"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
               <button type="submit" className="w-full bg-[#1A1A1A] text-white text-sm font-semibold uppercase tracking-[0.08em] py-4 hover:bg-[#333] transition-colors">
                 Sign In
               </button>
@@ -134,14 +146,25 @@ export function AccountPage() {
                 onChange={e => setFormData({ ...formData, email: e.target.value })}
                 className="w-full border border-[#E5E5E5] px-4 py-3 text-sm mb-4 outline-none focus:border-[#1A1A1A] transition-colors"
               />
-              <input
-                type="password"
-                placeholder="Password"
-                required
-                value={formData.password}
-                onChange={e => setFormData({ ...formData, password: e.target.value })}
-                className="w-full border border-[#E5E5E5] px-4 py-3 text-sm mb-6 outline-none focus:border-[#1A1A1A] transition-colors"
-              />
+              <div className="relative mb-6">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Password"
+                  required
+                  value={formData.password}
+                  onChange={e => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full border border-[#E5E5E5] px-4 py-3 pr-11 text-sm outline-none focus:border-[#1A1A1A] transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  tabIndex={-1}
+                  className="absolute right-0 top-0 h-full w-11 flex items-center justify-center text-[#999] hover:text-[#1A1A1A]"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
               <button type="submit" className="w-full bg-[#1A1A1A] text-white text-sm font-semibold uppercase tracking-[0.08em] py-4 hover:bg-[#333] transition-colors">
                 Create Account
               </button>

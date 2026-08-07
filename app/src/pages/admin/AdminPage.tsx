@@ -307,11 +307,9 @@ export function AdminPage() {
                             <Button variant="ghost" size="icon" onClick={() => openEdit(p)}>
                               <Pencil className="size-4" />
                             </Button>
-                            {role === 'admin' && (
-                              <Button variant="ghost" size="icon" onClick={() => setDeleting(p)}>
-                                <Trash2 className="size-4 text-red-600" />
-                              </Button>
-                            )}
+                            <Button variant="ghost" size="icon" onClick={() => setDeleting(p)}>
+                              <Trash2 className="size-4 text-red-600" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))

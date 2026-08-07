@@ -18,11 +18,17 @@ function isNavLinkActive(
   switch (label) {
     case 'Universities': {
       const institution = params.get('institution');
-      return pathname === '/shop' && !!institution && universities.includes(institution);
+      const type = params.get('type');
+      if (pathname !== '/shop') return false;
+      if (institution) return universities.includes(institution);
+      return type === 'university';
     }
     case 'Schools': {
       const institution = params.get('institution');
-      return pathname === '/shop' && !!institution && schools.includes(institution);
+      const type = params.get('type');
+      if (pathname !== '/shop') return false;
+      if (institution) return schools.includes(institution);
+      return type === 'school';
     }
     case 'Accessories': {
       if (pathname !== '/shop') return false;
@@ -151,18 +157,18 @@ export function Header() {
   ], [accessoryCategories]);
 
   const universityItems = useMemo<DropdownItem[]>(() => [
-    { label: 'View All Universities', href: '/shop' },
-    ...universities.map(u => ({ label: u, href: `/shop?institution=${encodeURIComponent(u)}` })),
+    { label: 'View All Universities', href: '/shop?type=university' },
+    ...universities.map(u => ({ label: u, href: `/shop?institution=${encodeURIComponent(u)}&type=university` })),
   ], [universities]);
 
   const schoolItems = useMemo<DropdownItem[]>(() => [
-    { label: 'View All Schools', href: '/shop' },
-    ...schools.map(s => ({ label: s, href: `/shop?institution=${encodeURIComponent(s)}` })),
+    { label: 'View All Schools', href: '/shop?type=school' },
+    ...schools.map(s => ({ label: s, href: `/shop?institution=${encodeURIComponent(s)}&type=school` })),
   ], [schools]);
 
   const navLinks: NavItem[] = useMemo(() => [
-    { label: 'Universities', href: '/shop', dropdown: universityItems },
-    { label: 'Schools', href: '/shop', dropdown: schoolItems },
+    { label: 'Universities', href: '/shop?type=university', dropdown: universityItems },
+    { label: 'Schools', href: '/shop?type=school', dropdown: schoolItems },
     { label: 'Accessories', href: '/shop?category=Accessories', dropdown: accessoriesItems },
   ], [universityItems, schoolItems, accessoriesItems]);
 

@@ -17,8 +17,8 @@ const sortOptions = [
   { label: 'Price, high to low', value: 'price-desc' },
 ];
 
-const CLOTHING_ORDER = ['Hoodies', 'Sweatshirts', 'Tshirts', 'Joggers', 'Caps'];
-const CATEGORY_LABELS: Record<string, string> = { Tshirts: 'T-Shirts' };
+const CLOTHING_ORDER = ['Hoodie', 'Sweatshirt', 'T-Shirt', 'Bottoms', 'Caps'];
+const CATEGORY_LABELS: Record<string, string> = { 'T-Shirt': 'T-Shirts', Hoodie: 'Hoodies', Sweatshirt: 'Sweatshirts' };
 
 function ProductCard({ product, color }: { product: Product; color?: ProductColor }) {
   const { addToCart } = useCart();
@@ -192,6 +192,7 @@ export function ShopPage() {
   }, [searchParams, accessoryCategories]);
   const selectedGenders = useMemo(() => getParamList('gender'), [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
   const selectedInstitutions = useMemo(() => getParamList('institution'), [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
+  const selectedType = searchParams.get('type') as 'university' | 'school' | null;
   const selectedColors = useMemo(() => getParamList('color'), [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
   const selectedSizes = useMemo(() => getParamList('size'), [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
   const selectedAvailability = useMemo(() => getParamList('availability'), [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -248,8 +249,13 @@ export function ShopPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, accessoryCategories]);
 
-  const institutions = useMemo(
-    () => Array.from(new Set(products.map(p => p.institution).filter((u): u is string => !!u))).sort(),
+  const universities = useMemo(
+    () => Array.from(new Set(products.filter(p => (p.institutionType ?? 'university') === 'university').map(p => p.institution).filter((u): u is string => !!u))).sort(),
+    [products]
+  );
+
+  const schools = useMemo(
+    () => Array.from(new Set(products.filter(p => p.institutionType === 'school').map(p => p.institution).filter((u): u is string => !!u))).sort(),
     [products]
   );
 
@@ -293,6 +299,18 @@ export function ShopPage() {
     [products]
   );
 
+  // Snap the price slider's upper bound down to the real catalog max the first
+  // time product data loads (the 9999 initial value is just a placeholder so
+  // nothing gets filtered out while products are still loading). Only runs
+  // once, so it never stomps a range the user has since dragged themselves.
+  const priceInitializedRef = useRef(false);
+  useEffect(() => {
+    if (!priceInitializedRef.current && products.length > 0) {
+      priceInitializedRef.current = true;
+      setPriceRange([0, maxPrice]);
+    }
+  }, [products, maxPrice]);
+
   // Derived from real product data — not a hardcoded palette — so any color name
   // entered in the admin panel or a bulk-upload sheet shows up as a filter option.
   const colorOptions = useMemo(() => {
@@ -304,12 +322,13 @@ export function ShopPage() {
   // Helper: apply all filters except one group, used for independent facet counts
   const applyFilters = (
     source: Product[],
-    opts: { genders?: string[]; cats?: string[]; unis?: string[]; colors?: string[]; sizes?: string[]; avail?: string[]; price?: [number, number] }
+    opts: { genders?: string[]; cats?: string[]; unis?: string[]; type?: 'university' | 'school' | null; colors?: string[]; sizes?: string[]; avail?: string[]; price?: [number, number] }
   ) => {
     let r = source;
     if (opts.genders?.length) r = r.filter(p => p.gender?.some(g => opts.genders!.includes(g)));
     if (opts.cats?.length) r = r.filter(p => opts.cats!.includes(p.category));
     if (opts.unis?.length) r = r.filter(p => !!p.institution && opts.unis!.includes(p.institution));
+    if (opts.type) r = r.filter(p => (p.institutionType ?? 'university') === opts.type);
     if (opts.colors?.length) r = r.filter(p => p.colors?.some(c => opts.colors!.includes(c.name)));
     if (opts.sizes?.length) r = r.filter(p => p.sizes?.some(s => opts.sizes!.includes(s)));
     if (opts.avail?.length) r = r.filter(p => opts.avail!.includes(p.inStock ? 'in' : 'out'));
@@ -318,18 +337,19 @@ export function ShopPage() {
   };
 
   // Base pools for each filter group (all active filters EXCEPT that group)
-  const genderBase = useMemo(() => applyFilters(products, { cats: selectedCategories, unis: selectedInstitutions, colors: selectedColors, sizes: selectedSizes, avail: selectedAvailability, price: priceRange }), [products, selectedCategories, selectedInstitutions, selectedColors, selectedSizes, selectedAvailability, priceRange]);
-  const categoryBase = useMemo(() => applyFilters(products, { genders: selectedGenders, unis: selectedInstitutions, colors: selectedColors, sizes: selectedSizes, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedInstitutions, selectedColors, selectedSizes, selectedAvailability, priceRange]);
-  const institutionBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, colors: selectedColors, sizes: selectedSizes, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedCategories, selectedColors, selectedSizes, selectedAvailability, priceRange]);
-  const sizeBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, unis: selectedInstitutions, colors: selectedColors, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedCategories, selectedInstitutions, selectedColors, selectedAvailability, priceRange]);
-  const availBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, unis: selectedInstitutions, colors: selectedColors, sizes: selectedSizes, price: priceRange }), [products, selectedGenders, selectedCategories, selectedInstitutions, selectedColors, selectedSizes, priceRange]);
-  const colorBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, unis: selectedInstitutions, sizes: selectedSizes, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedCategories, selectedInstitutions, selectedSizes, selectedAvailability, priceRange]);
+  const genderBase = useMemo(() => applyFilters(products, { cats: selectedCategories, unis: selectedInstitutions, type: selectedType, colors: selectedColors, sizes: selectedSizes, avail: selectedAvailability, price: priceRange }), [products, selectedCategories, selectedInstitutions, selectedType, selectedColors, selectedSizes, selectedAvailability, priceRange]);
+  const categoryBase = useMemo(() => applyFilters(products, { genders: selectedGenders, unis: selectedInstitutions, type: selectedType, colors: selectedColors, sizes: selectedSizes, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedInstitutions, selectedType, selectedColors, selectedSizes, selectedAvailability, priceRange]);
+  const institutionBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, type: selectedType, colors: selectedColors, sizes: selectedSizes, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedCategories, selectedType, selectedColors, selectedSizes, selectedAvailability, priceRange]);
+  const sizeBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, unis: selectedInstitutions, type: selectedType, colors: selectedColors, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedCategories, selectedInstitutions, selectedType, selectedColors, selectedAvailability, priceRange]);
+  const availBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, unis: selectedInstitutions, type: selectedType, colors: selectedColors, sizes: selectedSizes, price: priceRange }), [products, selectedGenders, selectedCategories, selectedInstitutions, selectedType, selectedColors, selectedSizes, priceRange]);
+  const colorBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, unis: selectedInstitutions, type: selectedType, sizes: selectedSizes, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedCategories, selectedInstitutions, selectedType, selectedSizes, selectedAvailability, priceRange]);
 
   const filteredProducts = useMemo(() => {
     let result = [...products];
     if (selectedGenders.length) result = result.filter(p => p.gender?.some(g => selectedGenders.includes(g)));
     if (selectedCategories.length) result = result.filter(p => selectedCategories.includes(p.category));
     if (selectedInstitutions.length) result = result.filter(p => !!p.institution && selectedInstitutions.includes(p.institution));
+    if (selectedType) result = result.filter(p => (p.institutionType ?? 'university') === selectedType);
     if (selectedColors.length) result = result.filter(p => p.colors?.some(c => selectedColors.includes(c.name)));
     if (selectedSizes.length) result = result.filter(p => p.sizes?.some(s => selectedSizes.includes(s)));
     if (selectedAvailability.length) {
@@ -355,7 +375,7 @@ export function ShopPage() {
       default: break;
     }
     return result;
-  }, [products, selectedGenders, selectedCategories, selectedInstitutions, selectedColors, selectedSizes, selectedAvailability, priceRange, searchQuery, sort]);
+  }, [products, selectedGenders, selectedCategories, selectedInstitutions, selectedType, selectedColors, selectedSizes, selectedAvailability, priceRange, searchQuery, sort]);
 
   // One grid tile per color variant (so a 3-color product shows 3 tiles). When a
   // color filter is active, only the matching color variant(s) are shown per
@@ -387,7 +407,7 @@ export function ShopPage() {
   // async fetch resolves, even when its contents haven't actually changed — a plain
   // reference-based dep list would treat that as a real filter change and reset
   // the page, silently overriding a page restored from Back navigation.
-  const filterSignature = JSON.stringify([selectedGenders, selectedCategories, selectedInstitutions, selectedColors, selectedSizes, selectedAvailability, priceRange, searchQuery, sort]);
+  const filterSignature = JSON.stringify([selectedGenders, selectedCategories, selectedInstitutions, selectedType, selectedColors, selectedSizes, selectedAvailability, priceRange, searchQuery, sort]);
   useEffect(() => {
     if (isFirstFilterEffectRunRef.current) {
       isFirstFilterEffectRunRef.current = false;
@@ -434,7 +454,7 @@ export function ShopPage() {
   }, []);
 
   const clearFilters = () => {
-    setPriceRange([0, 9999]);
+    setPriceRange([0, maxPrice]);
     setSearchQuery('');
     setSearchParams({}, { replace: true });
   };
@@ -448,7 +468,16 @@ export function ShopPage() {
   };
 
   const toggleInstitution = (uni: string) => {
-    setParamList('institution', selectedInstitutions.includes(uni) ? selectedInstitutions.filter(u => u !== uni) : [...selectedInstitutions, uni]);
+    const nextInstitutions = selectedInstitutions.includes(uni) ? selectedInstitutions.filter(u => u !== uni) : [...selectedInstitutions, uni];
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      // A specific institution already disambiguates university vs. school, so
+      // drop 'type' to avoid it silently zeroing out results (e.g. type=school
+      // still set from a header click, then checking a university in the sidebar).
+      next.delete('type');
+      if (nextInstitutions.length > 0) next.set('institution', nextInstitutions.join(',')); else next.delete('institution');
+      return next;
+    }, { replace: true });
   };
 
   const toggleSize = (size: string) => {
@@ -520,17 +549,35 @@ export function ShopPage() {
                   </div>
                 </div>
 
-                {/* Institutions */}
-                {institutions.length > 0 && (
+                {/* Universities */}
+                {universities.length > 0 && (
                   <div className="mb-6">
-                    <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Institutions</h4>
+                    <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Universities</h4>
                     <div className="space-y-2">
-                      {institutions.map(uni => {
+                      {universities.map(uni => {
                         const count = institutionBase.filter(p => p.institution === uni).length;
                         return (
                           <label key={uni} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
                             <input type="checkbox" checked={selectedInstitutions.includes(uni)} onChange={() => toggleInstitution(uni)} className="accent-[#1A1A1A]" />
                             {uni} ({count})
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Schools */}
+                {schools.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Schools</h4>
+                    <div className="space-y-2">
+                      {schools.map(school => {
+                        const count = institutionBase.filter(p => p.institution === school).length;
+                        return (
+                          <label key={school} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
+                            <input type="checkbox" checked={selectedInstitutions.includes(school)} onChange={() => toggleInstitution(school)} className="accent-[#1A1A1A]" />
+                            {school} ({count})
                           </label>
                         );
                       })}
@@ -638,9 +685,9 @@ export function ShopPage() {
                 <div className="mb-6">
                   <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Price</h4>
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="text-xs text-[#666]">${priceRange[0]}</span>
+                    <span className="text-xs text-[#666]">AED {priceRange[0]}</span>
                     <span className="text-xs text-[#666]">-</span>
-                    <span className="text-xs text-[#666]">${priceRange[1]}</span>
+                    <span className="text-xs text-[#666]">AED {priceRange[1]}</span>
                   </div>
                   <input
                     type="range"

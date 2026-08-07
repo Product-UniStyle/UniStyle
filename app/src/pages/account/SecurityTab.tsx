@@ -1,11 +1,39 @@
 import { useState } from 'react';
-import { Lock, Smartphone, Monitor, ShieldCheck, Trash2, AlertTriangle } from 'lucide-react';
+import { Lock, Smartphone, Monitor, ShieldCheck, Trash2, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { ApiError } from '@/lib/api';
 import { showToast } from '@/components/ToastContainer';
 
 interface Props {
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   deleteAccount: () => Promise<void>;
+}
+
+function PasswordField({ label, value, onChange, minLength }: { label: string; value: string; onChange: (v: string) => void; minLength?: number }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div>
+      <label className="text-xs font-medium uppercase tracking-wider text-[#666] mb-1 block">{label}</label>
+      <div className="relative">
+        <input
+          required
+          type={show ? 'text' : 'password'}
+          minLength={minLength}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          className="w-full border border-[#E5E5E5] px-3 py-2.5 pr-10 text-sm outline-none focus:border-[#1A1A1A]"
+        />
+        <button
+          type="button"
+          onClick={() => setShow(v => !v)}
+          tabIndex={-1}
+          className="absolute right-0 top-0 h-full w-10 flex items-center justify-center text-[#999] hover:text-[#1A1A1A]"
+          aria-label={show ? 'Hide password' : 'Show password'}
+        >
+          {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export function SecurityTab({ changePassword, deleteAccount }: Props) {
@@ -73,18 +101,9 @@ export function SecurityTab({ changePassword, deleteAccount }: Props) {
         </div>
         {showForm && (
           <form onSubmit={handleSubmit} className="p-5 pt-0 space-y-4 max-w-[420px]">
-            <div>
-              <label className="text-xs font-medium uppercase tracking-wider text-[#666] mb-1 block">Current Password</label>
-              <input required type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className="w-full border border-[#E5E5E5] px-3 py-2.5 text-sm outline-none focus:border-[#1A1A1A]" />
-            </div>
-            <div>
-              <label className="text-xs font-medium uppercase tracking-wider text-[#666] mb-1 block">New Password</label>
-              <input required type="password" minLength={8} value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full border border-[#E5E5E5] px-3 py-2.5 text-sm outline-none focus:border-[#1A1A1A]" />
-            </div>
-            <div>
-              <label className="text-xs font-medium uppercase tracking-wider text-[#666] mb-1 block">Confirm New Password</label>
-              <input required type="password" minLength={8} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="w-full border border-[#E5E5E5] px-3 py-2.5 text-sm outline-none focus:border-[#1A1A1A]" />
-            </div>
+            <PasswordField label="Current Password" value={currentPassword} onChange={setCurrentPassword} />
+            <PasswordField label="New Password" value={newPassword} onChange={setNewPassword} minLength={8} />
+            <PasswordField label="Confirm New Password" value={confirmPassword} onChange={setConfirmPassword} minLength={8} />
             {error && <p className="text-sm text-red-600">{error}</p>}
             <div className="flex items-center gap-2">
               <button type="button" onClick={() => { setShowForm(false); setError(''); }} className="text-sm text-[#666] px-4 py-2.5">Cancel</button>

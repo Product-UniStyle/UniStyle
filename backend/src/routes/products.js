@@ -4,7 +4,7 @@ import { z } from 'zod';
 import Product from '../models/Product.js';
 import { parseProductsFromCsv, slugify } from '../lib/sheetImport.js';
 import { requireImportKey } from '../middleware/importAuth.js';
-import { requireAdmin, requireEditorOrAdmin } from '../middleware/auth.js';
+import { requireEditorOrAdmin } from '../middleware/auth.js';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -179,8 +179,8 @@ router.patch('/:id', requireEditorOrAdmin, async (req, res, next) => {
   }
 });
 
-// DELETE /api/products/:id (admin only)
-router.delete('/:id', requireAdmin, async (req, res, next) => {
+// DELETE /api/products/:id (editor or admin)
+router.delete('/:id', requireEditorOrAdmin, async (req, res, next) => {
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
     if (!product) return res.status(404).json({ error: 'Product not found' });

@@ -102,6 +102,54 @@
   animation: fade-in 0.6s ease-out forwards;
 }
 
+/* Dual-thumb price slider: two stacked range inputs sharing one track.
+   Pointer events are disabled everywhere except the thumb itself, so each
+   handle stays independently draggable even while the inputs overlap. */
+.dual-range-input {
+  -webkit-appearance: none;
+  appearance: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: transparent;
+  pointer-events: none;
+}
+
+.dual-range-input::-webkit-slider-runnable-track {
+  -webkit-appearance: none;
+  background: transparent;
+}
+
+.dual-range-input::-moz-range-track {
+  background: transparent;
+}
+
+.dual-range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  pointer-events: auto;
+  width: 16px;
+  height: 16px;
+  margin-top: 0;
+  border-radius: 9999px;
+  background: #1A1A1A;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px #1A1A1A;
+  cursor: pointer;
+}
+
+.dual-range-input::-moz-range-thumb {
+  pointer-events: auto;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: #1A1A1A;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px #1A1A1A;
+  cursor: pointer;
+}
+
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;

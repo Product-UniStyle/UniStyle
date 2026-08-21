@@ -701,19 +701,39 @@ export function ShopPage() {
                 {/* Price */}
                 <div className="mb-6">
                   <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Price</h4>
-                  <div className="flex items-center gap-3 mb-3">
+                  <div className="flex items-center gap-3 mb-4">
                     <span className="text-xs text-[#666]">AED {priceRange[0]}</span>
                     <span className="text-xs text-[#666]">-</span>
                     <span className="text-xs text-[#666]">AED {priceRange[1]}</span>
                   </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={maxPrice}
-                    value={Math.min(priceRange[1], maxPrice)}
-                    onChange={e => setPriceRange([0, parseInt(e.target.value)])}
-                    className="w-full accent-[#1A1A1A]"
-                  />
+                  <div className="relative h-4">
+                    <div className="absolute top-1/2 left-0 right-0 h-1 -translate-y-1/2 rounded-full bg-[#E5E5E5]" />
+                    <div
+                      className="absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-[#1A1A1A]"
+                      style={{
+                        left: `${(priceRange[0] / maxPrice) * 100}%`,
+                        right: `${100 - (Math.min(priceRange[1], maxPrice) / maxPrice) * 100}%`,
+                      }}
+                    />
+                    <input
+                      type="range"
+                      min={0}
+                      max={maxPrice}
+                      value={priceRange[0]}
+                      onChange={e => setPriceRange([Math.min(parseInt(e.target.value), priceRange[1] - 1), priceRange[1]])}
+                      className="dual-range-input"
+                      aria-label="Minimum price"
+                    />
+                    <input
+                      type="range"
+                      min={0}
+                      max={maxPrice}
+                      value={Math.min(priceRange[1], maxPrice)}
+                      onChange={e => setPriceRange([priceRange[0], Math.max(parseInt(e.target.value), priceRange[0] + 1)])}
+                      className="dual-range-input"
+                      aria-label="Maximum price"
+                    />
+                  </div>
                 </div>
 
                 {/* Colors */}

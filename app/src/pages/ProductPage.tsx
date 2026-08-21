@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Heart, HelpCircle, Truck, Share2, Check, Star, ChevronLeft, ChevronRight, ShoppingBag, Lock, RefreshCw } from 'lucide-react';
+import { Heart, HelpCircle, Truck, Share2, Check, Star, ChevronLeft, ChevronRight, ShoppingBag, Lock, RefreshCw, Link2, MessageCircle, Facebook, Instagram } from 'lucide-react';
 import { useProduct, useProducts } from '@/hooks/useProducts';
 import type { Product } from '@/data/products';
 import { api, type BackendReview } from '@/lib/api';
@@ -152,7 +152,44 @@ export function ProductPage() {
   const [zoomOpen, setZoomOpen] = useState(false);
   const [reviews, setReviews] = useState<BackendReview[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const shareRef = useRef<HTMLDivElement>(null);
   const { products: allProducts } = useProducts();
+
+  useEffect(() => {
+    if (!shareOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (shareRef.current && !shareRef.current.contains(e.target as Node)) {
+        setShareOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [shareOpen]);
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    showToast('Link copied');
+    setShareOpen(false);
+  };
+
+  const handleShareWhatsApp = () => {
+    const text = product ? `${product.name} - ${window.location.href}` : window.location.href;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    setShareOpen(false);
+  };
+
+  const handleShareFacebook = () => {
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, '_blank');
+    setShareOpen(false);
+  };
+
+  const handleShareInstagram = () => {
+    navigator.clipboard.writeText(window.location.href);
+    showToast('Link copied — paste it on Instagram');
+    window.open('https://www.instagram.com/', '_blank');
+    setShareOpen(false);
+  };
 
   const completeCollection = product
     ? allProducts.filter(p => p.id !== product.id && p.institution && p.institution === product.institution).slice(0, 8)
@@ -331,9 +368,43 @@ export function ProductPage() {
                 >
                   <Heart size={20} fill={inWishlist ? 'currentColor' : 'none'} />
                 </button>
-                <button className="hover:text-[#1A1A1A] transition-colors" title="Share">
-                  <Share2 size={20} />
-                </button>
+                <div className="relative" ref={shareRef}>
+                  <button
+                    onClick={() => setShareOpen(o => !o)}
+                    className="hover:text-[#1A1A1A] transition-colors"
+                    title="Share"
+                  >
+                    <Share2 size={20} />
+                  </button>
+                  {shareOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-52 bg-white border border-[#E5E5E5] shadow-lg z-50 py-1">
+                      <button
+                        onClick={handleCopyLink}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#1A1A1A] hover:bg-[#F5F5F5] transition-colors text-left"
+                      >
+                        <Link2 size={16} /> Copy Link
+                      </button>
+                      <button
+                        onClick={handleShareWhatsApp}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#1A1A1A] hover:bg-[#F5F5F5] transition-colors text-left"
+                      >
+                        <MessageCircle size={16} /> WhatsApp
+                      </button>
+                      <button
+                        onClick={handleShareFacebook}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#1A1A1A] hover:bg-[#F5F5F5] transition-colors text-left"
+                      >
+                        <Facebook size={16} /> Facebook
+                      </button>
+                      <button
+                        onClick={handleShareInstagram}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#1A1A1A] hover:bg-[#F5F5F5] transition-colors text-left"
+                      >
+                        <Instagram size={16} /> Instagram
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-3 mb-4">

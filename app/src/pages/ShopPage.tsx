@@ -20,6 +20,21 @@ const sortOptions = [
 const CLOTHING_ORDER = ['Hoodie', 'Sweatshirt', 'T-Shirt', 'Bottoms', 'Caps'];
 const CATEGORY_LABELS: Record<string, string> = { 'T-Shirt': 'T-Shirts', Hoodie: 'Hoodies', Sweatshirt: 'Sweatshirts' };
 
+// Builds a Google-style page list: first page, last page, a window around the
+// current page, and '...' where those ranges don't connect.
+function getPageList(current: number, total: number): (number | '...')[] {
+  const delta = 2;
+  const windowStart = Math.max(2, current - delta);
+  const windowEnd = Math.min(total - 1, current + delta);
+
+  const list: (number | '...')[] = [1];
+  if (windowStart > 2) list.push('...');
+  for (let i = windowStart; i <= windowEnd; i++) list.push(i);
+  if (windowEnd < total - 1) list.push('...');
+  if (total > 1) list.push(total);
+  return list;
+}
+
 function ProductCard({ product, color }: { product: Product; color?: ProductColor }) {
   const { addToCart } = useCart();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
@@ -542,7 +557,9 @@ export function ShopPage() {
                       return (
                         <label key={gender} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
                           <input type="checkbox" checked={selectedGenders.includes(gender)} onChange={() => toggleGender(gender)} className="accent-[#1A1A1A]" />
-                          {gender === 'men' ? 'Men' : 'Women'} ({count})
+                          {selectedType === 'school'
+                            ? gender === 'men' ? 'Boys' : 'Girls'
+                            : gender === 'men' ? 'Men' : 'Women'} ({count})
                         </label>
                       );
                     })}
@@ -790,24 +807,41 @@ export function ShopPage() {
                   ))}
                 </div>
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-between gap-4 mt-10 pt-6 border-t border-[#E5E5E5]">
-                    <p className="text-sm text-[#666]">Page {page} of {totalPages}</p>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => { setPage((p) => p - 1); window.scrollTo(0, 0); }}
-                        disabled={page <= 1}
-                        className="text-sm border border-[#E5E5E5] px-4 py-2 hover:border-[#1A1A1A] transition-colors disabled:opacity-40 disabled:hover:border-[#E5E5E5] disabled:cursor-not-allowed"
-                      >
-                        Previous
-                      </button>
-                      <button
-                        onClick={() => { setPage((p) => p + 1); window.scrollTo(0, 0); }}
-                        disabled={page >= totalPages}
-                        className="text-sm border border-[#E5E5E5] px-4 py-2 hover:border-[#1A1A1A] transition-colors disabled:opacity-40 disabled:hover:border-[#E5E5E5] disabled:cursor-not-allowed"
-                      >
-                        Next
-                      </button>
-                    </div>
+                  <div className="flex items-center justify-center gap-2 mt-10 pt-6 border-t border-[#E5E5E5]">
+                    <button
+                      onClick={() => { setPage((p) => p - 1); window.scrollTo(0, 0); }}
+                      disabled={page <= 1}
+                      className="text-sm border border-[#E5E5E5] px-4 py-2 hover:border-[#1A1A1A] transition-colors disabled:opacity-40 disabled:hover:border-[#E5E5E5] disabled:cursor-not-allowed"
+                    >
+                      Previous
+                    </button>
+                    {getPageList(page, totalPages).map((p, i) =>
+                      p === '...' ? (
+                        <span key={`ellipsis-${i}`} className="w-9 h-9 flex items-center justify-center text-sm text-[#999]">
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={p}
+                          onClick={() => { setPage(p); window.scrollTo(0, 0); }}
+                          aria-current={p === page ? 'page' : undefined}
+                          className={`w-9 h-9 flex items-center justify-center text-sm border transition-colors ${
+                            p === page
+                              ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]'
+                              : 'border-[#E5E5E5] hover:border-[#1A1A1A]'
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      )
+                    )}
+                    <button
+                      onClick={() => { setPage((p) => p + 1); window.scrollTo(0, 0); }}
+                      disabled={page >= totalPages}
+                      className="text-sm border border-[#E5E5E5] px-4 py-2 hover:border-[#1A1A1A] transition-colors disabled:opacity-40 disabled:hover:border-[#E5E5E5] disabled:cursor-not-allowed"
+                    >
+                      Next
+                    </button>
                   </div>
                 )}
               </>

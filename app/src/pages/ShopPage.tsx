@@ -100,6 +100,12 @@ function ProductCard({ product, color }: { product: Product; color?: ProductColo
         {product.badge && (
           <span className="absolute top-3 left-3 bg-[#1A1A1A] text-white text-[11px] font-medium px-2 py-1">{product.badge}</span>
         )}
+        {!!product.rating && (
+          <span className="absolute top-3 right-3 flex items-center gap-0.5 bg-[#1B2A6B] text-white text-[11px] font-medium px-1.5 py-1">
+            {product.rating.toFixed(1)}
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="#fff"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          </span>
+        )}
         {hasCountdown && (
           <div className="absolute bottom-0 left-0 right-0 bg-[#1A1A1A] text-white flex items-center justify-center gap-2 py-2 text-[11px] font-medium">
             <span className="text-white/60">Ends in:</span>
@@ -140,20 +146,6 @@ function ProductCard({ product, color }: { product: Product; color?: ProductColo
             </>
           ) : (
             <span className="text-sm font-semibold">AED {product.price.toFixed(2)}</span>
-          )}
-        </div>
-        <div className="flex items-center gap-1 mt-1">
-          {product.rating ? (
-            <>
-              <div className="flex">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <svg key={i} width="12" height="12" viewBox="0 0 24 24" fill={i < Math.round(product.rating!) ? '#1A1A1A' : '#E5E5E5'}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                ))}
-              </div>
-              <span className="text-xs text-[#999]">({product.reviewCount})</span>
-            </>
-          ) : (
-            <span className="text-xs text-[#999]">No reviews yet</span>
           )}
         </div>
       </div>

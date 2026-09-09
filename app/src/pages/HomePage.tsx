@@ -194,7 +194,7 @@ function BestSellersSection() {
       <div className="max-w-[1440px] mx-auto px-6 lg:px-12">
         <div className="relative inline-block w-full text-center mb-24">
           <h2 className="font-playfair text-5xl md:text-6xl lg:text-7xl font-normal tracking-widest text-[#1B2A6B] relative z-10">BEST SELLERS</h2>
-          <img src="/highlight.png" alt="" className="absolute left-[49%] -translate-x-1/2 bottom-0 translate-y-[53%] w-[77%] object-contain pointer-events-none" />
+          <img src="/highlight.png" alt="" className="absolute left-[49%] -translate-x-1/2 bottom-0 translate-y-[53%] scale-y-50 w-[77%] object-contain pointer-events-none" />
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-6 lg:gap-8">
           {bestSellers.map(p => <ProductTile key={p.id} product={p} />)}
@@ -214,27 +214,66 @@ const universities = [
 ];
 
 function UniversitiesSection() {
+  const [selectedType, setSelectedType] = useState<'university' | 'school'>('university');
+  const { products } = useProducts();
+  const schools = Array.from(
+    new Set(products.filter(p => p.institutionType === 'school').map(p => p.institution).filter((n): n is string => !!n))
+  ).sort();
+
+  const typeButtonClass = (type: 'university' | 'school') =>
+    `font-playfair inline-block text-sm font-normal tracking-widest uppercase px-8 py-4 transition-colors ${
+      selectedType === type
+        ? 'bg-[#1B2A6B] text-white'
+        : 'bg-transparent text-[#1B2A6B] border border-[#1B2A6B] hover:bg-[#1B2A6B] hover:text-white'
+    }`;
+
   return (
     <section className="bg-[#F0EDE8] py-20 md:py-28">
       <div className="max-w-[1440px] mx-auto px-6 lg:px-12">
-        <h2 className="font-playfair text-4xl md:text-5xl lg:text-6xl font-normal text-center text-[#1B2A6B] tracking-widest mb-12">
-          SEARCH BY<br />OUR TOP UNIVERSITIES!
+        <h2 className="font-playfair text-4xl md:text-5xl lg:text-6xl font-normal text-center text-[#1B2A6B] tracking-widest mb-8">
+          SEARCH BY OUR TOP
         </h2>
-        <div className="grid grid-cols-3 gap-6">
-          {universities.map(u => (
-            <Link
-              key={u.name}
-              to={`/shop?institution=${encodeURIComponent(u.name)}`}
-              className="group bg-[#F0EDE8] aspect-square flex items-center justify-center p-6 hover:bg-white transition-colors"
-            >
-              <img
-                src={u.logo}
-                alt={u.name}
-                className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300"
-              />
-            </Link>
-          ))}
+        <div className="flex items-center justify-center gap-6 mb-12">
+          <button type="button" onClick={() => setSelectedType('university')} className={typeButtonClass('university')}>
+            University
+          </button>
+          <button type="button" onClick={() => setSelectedType('school')} className={typeButtonClass('school')}>
+            School
+          </button>
         </div>
+        {selectedType === 'university' ? (
+          <div className="grid grid-cols-3 gap-6">
+            {universities.map(u => (
+              <Link
+                key={u.name}
+                to={`/shop?institution=${encodeURIComponent(u.name)}`}
+                className="group bg-[#F0EDE8] aspect-square flex items-center justify-center p-6 hover:bg-white transition-colors"
+              >
+                <img
+                  src={u.logo}
+                  alt={u.name}
+                  className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                />
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-6">
+            {schools.length === 0 ? (
+              <p className="col-span-3 text-center text-[#666]">No schools available yet.</p>
+            ) : (
+              schools.map(name => (
+                <Link
+                  key={name}
+                  to={`/shop?institution=${encodeURIComponent(name)}`}
+                  className="group bg-[#F0EDE8] aspect-square flex items-center justify-center p-6 text-center hover:bg-white transition-colors"
+                >
+                  <span className="font-playfair text-lg text-[#1B2A6B] group-hover:scale-105 transition-transform duration-300">{name}</span>
+                </Link>
+              ))
+            )}
+          </div>
+        )}
       </div>
     </section>
   );

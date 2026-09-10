@@ -17,6 +17,8 @@ const sortOptions = [
   { label: 'Price, high to low', value: 'price-desc' },
 ];
 
+const DISCOUNT_TIERS = [10, 20, 30, 40, 50, 60, 70, 80, 90];
+
 const CLOTHING_ORDER = ['Hoodie', 'Sweatshirt', 'T-Shirt', 'Bottoms', 'Caps'];
 const CATEGORY_LABELS: Record<string, string> = { 'T-Shirt': 'T-Shirts', Hoodie: 'Hoodies', Sweatshirt: 'Sweatshirts' };
 
@@ -203,6 +205,7 @@ export function ShopPage() {
   const selectedColors = useMemo(() => getParamList('color'), [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
   const selectedSizes = useMemo(() => getParamList('size'), [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
   const selectedAvailability = useMemo(() => getParamList('availability'), [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
+  const selectedDiscounts = useMemo(() => getParamList('discount'), [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 9999]);
   const [sort, setSort] = useState('relevant');
@@ -211,6 +214,7 @@ export function ShopPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [accessoriesOpen, setAccessoriesOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showMoreOpen, setShowMoreOpen] = useState(false);
 
   const PAGE_SIZE = 100;
   const [page, setPage] = useState<number>(() => {
@@ -326,10 +330,19 @@ export function ShopPage() {
     return Array.from(map, ([name, hex]) => ({ name, hex }));
   }, [products]);
 
+  // Percentage a product's sale price undercuts its list price by (0 when not on sale).
+  const discountPercent = (p: Product) =>
+    p.salePrice && p.salePrice < p.price ? ((p.price - p.salePrice) / p.price) * 100 : 0;
+
+  // A product matches a set of "X% & above" tiers when it clears at least one
+  // of the selected thresholds (the loosest selected tier effectively wins).
+  const matchesDiscountTiers = (p: Product, tiers: string[]) =>
+    tiers.some(t => discountPercent(p) >= Number(t));
+
   // Helper: apply all filters except one group, used for independent facet counts
   const applyFilters = (
     source: Product[],
-    opts: { genders?: string[]; cats?: string[]; unis?: string[]; type?: 'university' | 'school' | null; colors?: string[]; sizes?: string[]; avail?: string[]; price?: [number, number] }
+    opts: { genders?: string[]; cats?: string[]; unis?: string[]; type?: 'university' | 'school' | null; colors?: string[]; sizes?: string[]; avail?: string[]; price?: [number, number]; discounts?: string[] }
   ) => {
     let r = source;
     if (opts.genders?.length) r = r.filter(p => p.gender?.some(g => opts.genders!.includes(g)));
@@ -340,16 +353,18 @@ export function ShopPage() {
     if (opts.sizes?.length) r = r.filter(p => p.sizes?.some(s => opts.sizes!.includes(s)));
     if (opts.avail?.length) r = r.filter(p => opts.avail!.includes(p.inStock ? 'in' : 'out'));
     if (opts.price) r = r.filter(p => { const ep = p.salePrice || p.price; return ep >= opts.price![0] && ep <= opts.price![1]; });
+    if (opts.discounts?.length) r = r.filter(p => matchesDiscountTiers(p, opts.discounts!));
     return r;
   };
 
   // Base pools for each filter group (all active filters EXCEPT that group)
-  const genderBase = useMemo(() => applyFilters(products, { cats: selectedCategories, unis: selectedInstitutions, type: selectedType, colors: selectedColors, sizes: selectedSizes, avail: selectedAvailability, price: priceRange }), [products, selectedCategories, selectedInstitutions, selectedType, selectedColors, selectedSizes, selectedAvailability, priceRange]);
-  const categoryBase = useMemo(() => applyFilters(products, { genders: selectedGenders, unis: selectedInstitutions, type: selectedType, colors: selectedColors, sizes: selectedSizes, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedInstitutions, selectedType, selectedColors, selectedSizes, selectedAvailability, priceRange]);
-  const institutionBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, type: selectedType, colors: selectedColors, sizes: selectedSizes, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedCategories, selectedType, selectedColors, selectedSizes, selectedAvailability, priceRange]);
-  const sizeBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, unis: selectedInstitutions, type: selectedType, colors: selectedColors, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedCategories, selectedInstitutions, selectedType, selectedColors, selectedAvailability, priceRange]);
-  const availBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, unis: selectedInstitutions, type: selectedType, colors: selectedColors, sizes: selectedSizes, price: priceRange }), [products, selectedGenders, selectedCategories, selectedInstitutions, selectedType, selectedColors, selectedSizes, priceRange]);
-  const colorBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, unis: selectedInstitutions, type: selectedType, sizes: selectedSizes, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedCategories, selectedInstitutions, selectedType, selectedSizes, selectedAvailability, priceRange]);
+  const genderBase = useMemo(() => applyFilters(products, { cats: selectedCategories, unis: selectedInstitutions, type: selectedType, colors: selectedColors, sizes: selectedSizes, avail: selectedAvailability, price: priceRange, discounts: selectedDiscounts }), [products, selectedCategories, selectedInstitutions, selectedType, selectedColors, selectedSizes, selectedAvailability, priceRange, selectedDiscounts]);
+  const categoryBase = useMemo(() => applyFilters(products, { genders: selectedGenders, unis: selectedInstitutions, type: selectedType, colors: selectedColors, sizes: selectedSizes, avail: selectedAvailability, price: priceRange, discounts: selectedDiscounts }), [products, selectedGenders, selectedInstitutions, selectedType, selectedColors, selectedSizes, selectedAvailability, priceRange, selectedDiscounts]);
+  const institutionBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, type: selectedType, colors: selectedColors, sizes: selectedSizes, avail: selectedAvailability, price: priceRange, discounts: selectedDiscounts }), [products, selectedGenders, selectedCategories, selectedType, selectedColors, selectedSizes, selectedAvailability, priceRange, selectedDiscounts]);
+  const sizeBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, unis: selectedInstitutions, type: selectedType, colors: selectedColors, avail: selectedAvailability, price: priceRange, discounts: selectedDiscounts }), [products, selectedGenders, selectedCategories, selectedInstitutions, selectedType, selectedColors, selectedAvailability, priceRange, selectedDiscounts]);
+  const availBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, unis: selectedInstitutions, type: selectedType, colors: selectedColors, sizes: selectedSizes, price: priceRange, discounts: selectedDiscounts }), [products, selectedGenders, selectedCategories, selectedInstitutions, selectedType, selectedColors, selectedSizes, priceRange, selectedDiscounts]);
+  const colorBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, unis: selectedInstitutions, type: selectedType, sizes: selectedSizes, avail: selectedAvailability, price: priceRange, discounts: selectedDiscounts }), [products, selectedGenders, selectedCategories, selectedInstitutions, selectedType, selectedSizes, selectedAvailability, priceRange, selectedDiscounts]);
+  const discountBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, unis: selectedInstitutions, type: selectedType, colors: selectedColors, sizes: selectedSizes, avail: selectedAvailability, price: priceRange }), [products, selectedGenders, selectedCategories, selectedInstitutions, selectedType, selectedColors, selectedSizes, selectedAvailability, priceRange]);
 
   const filteredProducts = useMemo(() => {
     let result = [...products];
@@ -366,6 +381,7 @@ export function ShopPage() {
       const effectivePrice = p.salePrice || p.price;
       return effectivePrice >= priceRange[0] && effectivePrice <= priceRange[1];
     });
+    if (selectedDiscounts.length) result = result.filter(p => matchesDiscountTiers(p, selectedDiscounts));
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
       result = result.filter(p =>
@@ -382,7 +398,7 @@ export function ShopPage() {
       default: break;
     }
     return result;
-  }, [products, selectedGenders, selectedCategories, selectedInstitutions, selectedType, selectedColors, selectedSizes, selectedAvailability, priceRange, searchQuery, sort]);
+  }, [products, selectedGenders, selectedCategories, selectedInstitutions, selectedType, selectedColors, selectedSizes, selectedAvailability, selectedDiscounts, priceRange, searchQuery, sort]);
 
   // One grid tile per color variant (so a 3-color product shows 3 tiles). When a
   // color filter is active, only the matching color variant(s) are shown per
@@ -414,7 +430,7 @@ export function ShopPage() {
   // async fetch resolves, even when its contents haven't actually changed — a plain
   // reference-based dep list would treat that as a real filter change and reset
   // the page, silently overriding a page restored from Back navigation.
-  const filterSignature = JSON.stringify([selectedGenders, selectedCategories, selectedInstitutions, selectedType, selectedColors, selectedSizes, selectedAvailability, priceRange, searchQuery, sort]);
+  const filterSignature = JSON.stringify([selectedGenders, selectedCategories, selectedInstitutions, selectedType, selectedColors, selectedSizes, selectedAvailability, selectedDiscounts, priceRange, searchQuery, sort]);
   useEffect(() => {
     if (isFirstFilterEffectRunRef.current) {
       isFirstFilterEffectRunRef.current = false;
@@ -499,6 +515,10 @@ export function ShopPage() {
     setParamList('availability', selectedAvailability.includes(key) ? selectedAvailability.filter(a => a !== key) : [...selectedAvailability, key]);
   };
 
+  const toggleDiscount = (tier: string) => {
+    setParamList('discount', selectedDiscounts.includes(tier) ? selectedDiscounts.filter(d => d !== tier) : [...selectedDiscounts, tier]);
+  };
+
   useEffect(() => {
     if (!sectionRef.current) return;
     const ctx = gsap.context(() => {
@@ -559,7 +579,7 @@ export function ShopPage() {
                 </div>
 
                 {/* Universities */}
-                {universities.length > 0 && (
+                {universities.length > 0 && selectedType !== 'school' && (
                   <div className="mb-6">
                     <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Universities</h4>
                     <div className="space-y-2">
@@ -577,7 +597,7 @@ export function ShopPage() {
                 )}
 
                 {/* Schools */}
-                {schools.length > 0 && (
+                {schools.length > 0 && selectedType !== 'university' && (
                   <div className="mb-6">
                     <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Schools</h4>
                     <div className="space-y-2">
@@ -675,21 +695,6 @@ export function ShopPage() {
                   </div>
                 )}
 
-                {/* Availability */}
-                <div className="mb-6">
-                  <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Availability</h4>
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 text-sm text-[#666] cursor-pointer">
-                      <input type="checkbox" checked={selectedAvailability.includes('in')} onChange={() => toggleAvailability('in')} className="accent-[#1A1A1A]" />
-                      In stock ({availBase.filter(p => p.inStock).length})
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-[#666] cursor-pointer">
-                      <input type="checkbox" checked={selectedAvailability.includes('out')} onChange={() => toggleAvailability('out')} className="accent-[#1A1A1A]" />
-                      Out of stock ({availBase.filter(p => !p.inStock).length})
-                    </label>
-                  </div>
-                </div>
-
                 {/* Price */}
                 <div className="mb-6">
                   <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Price</h4>
@@ -748,8 +753,60 @@ export function ShopPage() {
                   </div>
                 </div>
                 )}
+
+                {/* Discount range */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Discount Range</h4>
+                  <div className="space-y-2">
+                    {DISCOUNT_TIERS.map(tier => {
+                      const count = discountBase.filter(p => discountPercent(p) >= tier).length;
+                      return (
+                        <label key={tier} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
+                          <input type="checkbox" checked={selectedDiscounts.includes(String(tier))} onChange={() => toggleDiscount(String(tier))} className="accent-[#1A1A1A]" />
+                          {tier}% & above ({count})
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Show more */}
+                <button
+                  type="button"
+                  onClick={() => setShowMoreOpen(true)}
+                  className="text-xs font-medium text-[#666] hover:text-[#1A1A1A] underline transition-colors mb-6"
+                >
+                  Show more filters
+                </button>
             </>
           </aside>
+
+          {/* Show more popup */}
+          {showMoreOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowMoreOpen(false)}>
+              <div className="bg-white w-[90%] max-w-sm p-6" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="font-semibold">More Filters</h3>
+                  <button onClick={() => setShowMoreOpen(false)} aria-label="Close"><X size={20} /></button>
+                </div>
+
+                {/* Availability */}
+                <div className="mb-2">
+                  <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Availability</h4>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm text-[#666] cursor-pointer">
+                      <input type="checkbox" checked={selectedAvailability.includes('in')} onChange={() => toggleAvailability('in')} className="accent-[#1A1A1A]" />
+                      In stock ({availBase.filter(p => p.inStock).length})
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-[#666] cursor-pointer">
+                      <input type="checkbox" checked={selectedAvailability.includes('out')} onChange={() => toggleAvailability('out')} className="accent-[#1A1A1A]" />
+                      Out of stock ({availBase.filter(p => !p.inStock).length})
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Main */}
           <div className="flex-1 min-w-0">

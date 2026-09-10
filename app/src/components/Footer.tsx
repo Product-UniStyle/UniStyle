@@ -82,7 +82,7 @@ export function Footer() {
 
         {/* Bottom bar */}
         <div className="border-t border-[#2A2A2A] py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-[#666]">© 2026 UniStyle</p>
+          <p className="text-sm text-[#666]">© Copyright 2026-27 UniStyle – All Rights Reserved.</p>
           <div className="flex items-center gap-5">
             <a href="#" aria-label="Instagram" className="text-[#666] hover:text-white transition-colors"><InstagramIcon size={19} /></a>
             <a href="#" aria-label="TikTok" className="text-[#666] hover:text-white transition-colors"><TikTokIcon size={19} /></a>

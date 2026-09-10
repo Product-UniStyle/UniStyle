@@ -155,6 +155,18 @@ function ProductCard({ product, color }: { product: Product; color?: ProductColo
   );
 }
 
+function ProductCardSkeleton() {
+  return (
+    <div className="animate-pulse">
+      <div className="aspect-square bg-[#EDEDED]" />
+      <div className="mt-3 space-y-2">
+        <div className="h-3.5 w-3/4 bg-[#EDEDED]" />
+        <div className="h-3.5 w-1/3 bg-[#EDEDED]" />
+      </div>
+    </div>
+  );
+}
+
 export function ShopPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
@@ -863,8 +875,10 @@ export function ShopPage() {
 
             {/* Product Grid */}
             {loading ? (
-              <div className="text-center py-20">
-                <p className="text-lg text-[#666]">Loading products...</p>
+              <div className={`grid gap-6 ${gridCols === 2 ? 'grid-cols-2' : gridCols === 3 ? 'grid-cols-2 md:grid-cols-3' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'}`}>
+                {Array.from({ length: gridCols === 2 ? 8 : gridCols === 3 ? 9 : 12 }).map((_, i) => (
+                  <ProductCardSkeleton key={i} />
+                ))}
               </div>
             ) : gridEntries.length > 0 ? (
               <>

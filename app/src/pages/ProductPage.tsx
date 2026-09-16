@@ -5,6 +5,13 @@ import { useProduct, useProducts } from '@/hooks/useProducts';
 import type { Product } from '@/data/products';
 import { api, type BackendReview } from '@/lib/api';
 
+const TRUST_BADGES = [
+  { icon: Check, label: 'Official University Merchandise' },
+  { icon: Lock, label: 'Secure Checkout' },
+  { icon: Truck, label: 'Fast UAE Delivery' },
+  { icon: RefreshCw, label: 'Easy Exchanges' },
+];
+
 function CollectionRow({ title, products }: { title: string; products: Product[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -517,25 +524,21 @@ export function ProductPage() {
             >
               Buy Now
             </button>
-
-            {/* Trust badges */}
-            <div className="grid grid-cols-4 gap-2 border border-[#E5E5E5] rounded-lg p-4 bg-[#FAFAFA]">
-              {[
-                { icon: Check, label: 'Official University Merchandise' },
-                { icon: Lock, label: 'Secure Checkout' },
-                { icon: Truck, label: 'Fast UAE Delivery' },
-                { icon: RefreshCw, label: 'Easy Exchanges' },
-              ].map(({ icon: Icon, label }) => (
-                <div key={label} className="flex flex-col items-center text-center gap-1.5">
-                  <Icon size={20} className="text-[#1A1A1A]" />
-                  <span className="text-[11px] text-[#666] leading-tight">{label}</span>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
 
+        {/* Trust badges */}
+        <div className="flex items-center justify-between gap-2 mt-10 border border-[#E5E5E5] rounded-lg px-4 py-4 bg-[#FAFAFA]">
+          {TRUST_BADGES.map(({ icon: Icon, label }) => (
+            <div key={label} className="flex-1 flex flex-col items-center text-center gap-1.5">
+              <Icon size={20} className="text-[#1A1A1A]" />
+              <span className="text-[11px] text-[#666] leading-tight">{label}</span>
+            </div>
+          ))}
+        </div>
+
         {/* Reviews Section */}
+        {(reviewsLoading || reviews.length > 0) && (
         <div className="mt-16 border-t border-[#E5E5E5] pt-10">
           <div className="flex items-center justify-between mb-8">
             <h2 className="font-playfair text-2xl md:text-3xl font-bold tracking-normal uppercase">Customer Reviews</h2>
@@ -547,12 +550,6 @@ export function ProductPage() {
               {[1, 2].map(i => (
                 <div key={i} className="h-24 bg-[#F5F5F5] animate-pulse" />
               ))}
-            </div>
-          ) : reviews.length === 0 ? (
-            <div className="text-center py-16 border border-dashed border-[#E5E5E5]">
-              <Star size={32} className="mx-auto mb-3 text-[#E5E5E5]" strokeWidth={1} />
-              <p className="text-sm font-medium text-[#1A1A1A] mb-1">No reviews yet</p>
-              <p className="text-sm text-[#999]">Be the first to review this product after your purchase.</p>
             </div>
           ) : (() => {
             const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
@@ -630,6 +627,7 @@ export function ProductPage() {
             );
           })()}
         </div>
+        )}
       </div>
 
       {/* Complete the Collection */}

@@ -1,9 +1,52 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Minus, Plus, X, ShoppingBag, Heart, Lock, ChevronLeft } from 'lucide-react';
-import { useCart } from '@/context/CartContext';
+import { useCart, type CartItem } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { useProducts } from '@/hooks/useProducts';
 import { showToast } from '@/components/ToastContainer';
+
+function MoveFromBagModal({ item, onClose, onRemove, onMoveToWishlist }: {
+  item: CartItem;
+  onClose: () => void;
+  onRemove: () => void;
+  onMoveToWishlist: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/40" />
+      <div
+        className="relative w-full max-w-[420px] bg-white shadow-xl"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-start gap-4 p-5">
+          <img src={item.product.images[0]} alt={item.product.name} className="w-14 h-14 object-cover bg-[#F5F5F5] shrink-0" />
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-bold text-[#1A1A1A] mb-1.5">Move from Bag</h3>
+            <p className="text-sm text-[#666] leading-relaxed">Are you sure you want to move this item from bag?</p>
+          </div>
+          <button onClick={onClose} className="text-[#1A1A1A] hover:text-[#666] transition-colors shrink-0" aria-label="Close">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="grid grid-cols-2 border-t border-[#E5E5E5]">
+          <button
+            onClick={onRemove}
+            className="py-3.5 text-sm font-semibold text-[#666] uppercase tracking-wider hover:bg-[#F5F5F5] transition-colors border-r border-[#E5E5E5]"
+          >
+            Remove
+          </button>
+          <button
+            onClick={onMoveToWishlist}
+            className="py-3.5 text-sm font-semibold text-[#E4007C] uppercase tracking-wider hover:bg-[#F5F5F5] transition-colors"
+          >
+            Move to Wishlist
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function YouMayAlsoLike() {
   const { products } = useProducts();
@@ -71,7 +114,9 @@ function YouMayAlsoLike() {
 
 export function CartPage() {
   const { items, removeFromCart, updateQuantity, subtotal } = useCart();
+  const { addToWishlist } = useWishlist();
   const navigate = useNavigate();
+  const [itemToRemove, setItemToRemove] = useState<CartItem | null>(null);
 
   if (items.length === 0) {
     return (
@@ -212,7 +257,7 @@ export function CartPage() {
 
                     {/* Remove */}
                     <button
-                      onClick={() => removeFromCart(item.id)}
+                      onClick={() => setItemToRemove(item)}
                       className="text-[#999] hover:text-[#DC2626] transition-colors"
                       aria-label="Remove item"
                     >
@@ -276,6 +321,24 @@ export function CartPage() {
           </div>
         </div>
       </div>
+
+      {itemToRemove && (
+        <MoveFromBagModal
+          item={itemToRemove}
+          onClose={() => setItemToRemove(null)}
+          onRemove={() => {
+            removeFromCart(itemToRemove.id);
+            showToast('Removed from bag');
+            setItemToRemove(null);
+          }}
+          onMoveToWishlist={() => {
+            addToWishlist(itemToRemove.product);
+            removeFromCart(itemToRemove.id);
+            showToast('Moved to wishlist');
+            setItemToRemove(null);
+          }}
+        />
+      )}
     </div>
   );
 }

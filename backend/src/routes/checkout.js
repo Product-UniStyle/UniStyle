@@ -16,7 +16,7 @@ const addressSchema = z.object({
   state: z.string().optional(),
   postalCode: z.string().min(1),
   country: z.string().min(2),
-  phone: z.string().optional(),
+  phone: z.string().min(1),
 });
 
 const checkoutSchema = z.object({

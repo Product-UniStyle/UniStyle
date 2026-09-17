@@ -1,17 +1,17 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CreditCard, Lock, ChevronLeft, Truck } from 'lucide-react';
+import { Lock, ChevronLeft, Truck } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { showToast } from '@/components/ToastContainer';
 import { api, ApiError } from '@/lib/api';
+import { COUNTRIES } from '@/data/countries';
 
 export function CheckoutPage() {
   const { selectedItems: items, selectedSubtotal: subtotal, discount, removeItems } = useCart();
   const { user, isAuthenticated, refreshOrders } = useAuth();
   const navigate = useNavigate();
 
-  const [step, setStep] = useState<'shipping' | 'payment'>('shipping');
   const [shippingData, setShippingData] = useState({
     email: user?.email || '',
     firstName: user?.firstName || '',
@@ -24,18 +24,39 @@ export function CheckoutPage() {
     phone: '',
   });
   const [shippingMethod, setShippingMethod] = useState<'standard' | 'express'>('standard');
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal'>('card');
-  const [cardData, setCardData] = useState({ number: '', expiry: '', cvv: '', name: '' });
   const [processing, setProcessing] = useState(false);
+  const [shippingErrors, setShippingErrors] = useState<Record<string, string>>({});
 
   const shippingCost = shippingMethod === 'express' ? 15 : subtotal > 100 ? 0 : 8;
   const tax = (subtotal - discount) * 0.08;
   const total = subtotal - discount + shippingCost + tax;
 
+  const validateShipping = () => {
+    const errors: Record<string, string> = {};
+    if (!shippingData.email.trim()) errors.email = 'Email is required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(shippingData.email)) errors.email = 'Enter a valid email';
+    if (!shippingData.firstName.trim()) errors.firstName = 'First name is required';
+    if (!shippingData.lastName.trim()) errors.lastName = 'Last name is required';
+    if (!shippingData.address1.trim()) errors.address1 = 'Address is required';
+    if (!shippingData.city.trim()) errors.city = 'City is required';
+    if (!shippingData.country.trim()) errors.country = 'Country is required';
+    if (!shippingData.postalCode.trim()) errors.postalCode = 'Postal code is required';
+    else if (!/^\d{3,10}$/.test(shippingData.postalCode.trim())) errors.postalCode = 'Postal code must be numbers only';
+    if (!shippingData.phone.trim()) errors.phone = 'Phone number is required';
+    else if (!/^\d{10,15}$/.test(shippingData.phone.replace(/[\s-]/g, ''))) errors.phone = 'Enter a valid phone number (at least 10 digits)';
+    setShippingErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handlePlaceOrder = async () => {
     if (!isAuthenticated) {
       showToast('Please sign in to place an order', 'error');
       navigate('/account');
+      return;
+    }
+
+    if (!validateShipping()) {
+      showToast('Please fill in all required shipping fields', 'error');
       return;
     }
 
@@ -55,13 +76,14 @@ export function CheckoutPage() {
         itemIds: orderedItemIds,
       });
 
-      removeItems(orderedItemIds);
-      showToast('Order placed successfully!');
-      await refreshOrders();
-
       if (url) {
+        // Real Stripe checkout: nothing is paid yet, so don't claim success or
+        // clear the cart until the webhook actually confirms payment.
         window.location.href = url;
       } else {
+        removeItems(orderedItemIds);
+        showToast('Order placed successfully!');
+        await refreshOrders();
         navigate(redirectUrl || `/account?order=success&orderId=${orderId}`);
       }
     } catch (err) {
@@ -95,43 +117,62 @@ export function CheckoutPage() {
         <h1 className="text-3xl font-bold tracking-tight mb-10">Checkout</h1>
 
         <div className="max-w-[720px]">
-            {/* Progress */}
-            <div className="flex items-center gap-4 mb-10">
-              <div className={`flex items-center gap-2 text-sm font-medium ${step === 'shipping' || step === 'payment' ? 'text-[#1A1A1A]' : 'text-[#999]'}`}>
-                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${step === 'shipping' || step === 'payment' ? 'bg-[#1A1A1A] text-white' : 'bg-[#E5E5E5]'}`}>1</span>
-                Shipping
-              </div>
-              <div className="w-12 h-[1px] bg-[#E5E5E5]" />
-              <div className={`flex items-center gap-2 text-sm font-medium ${step === 'payment' ? 'text-[#1A1A1A]' : 'text-[#999]'}`}>
-                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${step === 'payment' ? 'bg-[#1A1A1A] text-white' : 'bg-[#E5E5E5]'}`}>2</span>
-                Payment
-              </div>
-            </div>
-
-            {step === 'shipping' && (
-              <div>
+            <div>
                 <h2 className="text-lg font-bold mb-6">Contact Information</h2>
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={shippingData.email}
-                  onChange={e => setShippingData({ ...shippingData, email: e.target.value })}
-                  className="w-full border border-[#E5E5E5] px-4 py-3 text-sm mb-6 outline-none focus:border-[#1A1A1A] transition-colors"
-                />
+                <div className="mb-6">
+                  <input
+                    type="email"
+                    placeholder="Email"
+                    value={shippingData.email}
+                    onChange={e => { setShippingData({ ...shippingData, email: e.target.value }); setShippingErrors({ ...shippingErrors, email: '' }); }}
+                    className={`w-full border px-4 py-3 text-sm outline-none transition-colors ${shippingErrors.email ? 'border-red-500' : 'border-[#E5E5E5] focus:border-[#1A1A1A]'}`}
+                  />
+                  {shippingErrors.email && <p className="text-xs text-red-600 mt-1">{shippingErrors.email}</p>}
+                </div>
 
                 <h2 className="text-lg font-bold mb-6">Shipping Address</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                  <input placeholder="First Name" value={shippingData.firstName} onChange={e => setShippingData({ ...shippingData, firstName: e.target.value })} className="w-full border border-[#E5E5E5] px-4 py-3 text-sm outline-none focus:border-[#1A1A1A]" />
-                  <input placeholder="Last Name" value={shippingData.lastName} onChange={e => setShippingData({ ...shippingData, lastName: e.target.value })} className="w-full border border-[#E5E5E5] px-4 py-3 text-sm outline-none focus:border-[#1A1A1A]" />
+                  <div>
+                    <input placeholder="First Name" value={shippingData.firstName} onChange={e => { setShippingData({ ...shippingData, firstName: e.target.value }); setShippingErrors({ ...shippingErrors, firstName: '' }); }} className={`w-full border px-4 py-3 text-sm outline-none ${shippingErrors.firstName ? 'border-red-500' : 'border-[#E5E5E5] focus:border-[#1A1A1A]'}`} />
+                    {shippingErrors.firstName && <p className="text-xs text-red-600 mt-1">{shippingErrors.firstName}</p>}
+                  </div>
+                  <div>
+                    <input placeholder="Last Name" value={shippingData.lastName} onChange={e => { setShippingData({ ...shippingData, lastName: e.target.value }); setShippingErrors({ ...shippingErrors, lastName: '' }); }} className={`w-full border px-4 py-3 text-sm outline-none ${shippingErrors.lastName ? 'border-red-500' : 'border-[#E5E5E5] focus:border-[#1A1A1A]'}`} />
+                    {shippingErrors.lastName && <p className="text-xs text-red-600 mt-1">{shippingErrors.lastName}</p>}
+                  </div>
                 </div>
-                <input placeholder="Address" value={shippingData.address1} onChange={e => setShippingData({ ...shippingData, address1: e.target.value })} className="w-full border border-[#E5E5E5] px-4 py-3 text-sm mb-4 outline-none focus:border-[#1A1A1A]" />
+                <div className="mb-4">
+                  <input placeholder="Address" value={shippingData.address1} onChange={e => { setShippingData({ ...shippingData, address1: e.target.value }); setShippingErrors({ ...shippingErrors, address1: '' }); }} className={`w-full border px-4 py-3 text-sm outline-none ${shippingErrors.address1 ? 'border-red-500' : 'border-[#E5E5E5] focus:border-[#1A1A1A]'}`} />
+                  {shippingErrors.address1 && <p className="text-xs text-red-600 mt-1">{shippingErrors.address1}</p>}
+                </div>
                 <input placeholder="Apartment, suite, etc. (optional)" value={shippingData.address2} onChange={e => setShippingData({ ...shippingData, address2: e.target.value })} className="w-full border border-[#E5E5E5] px-4 py-3 text-sm mb-4 outline-none focus:border-[#1A1A1A]" />
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                  <input placeholder="City" value={shippingData.city} onChange={e => setShippingData({ ...shippingData, city: e.target.value })} className="w-full border border-[#E5E5E5] px-4 py-3 text-sm outline-none focus:border-[#1A1A1A]" />
-                  <input placeholder="Country" value={shippingData.country} onChange={e => setShippingData({ ...shippingData, country: e.target.value })} className="w-full border border-[#E5E5E5] px-4 py-3 text-sm outline-none focus:border-[#1A1A1A]" />
-                  <input placeholder="Postal Code" value={shippingData.postalCode} onChange={e => setShippingData({ ...shippingData, postalCode: e.target.value })} className="w-full border border-[#E5E5E5] px-4 py-3 text-sm outline-none focus:border-[#1A1A1A]" />
+                  <div>
+                    <input placeholder="City" value={shippingData.city} onChange={e => { setShippingData({ ...shippingData, city: e.target.value }); setShippingErrors({ ...shippingErrors, city: '' }); }} className={`w-full border px-4 py-3 text-sm outline-none ${shippingErrors.city ? 'border-red-500' : 'border-[#E5E5E5] focus:border-[#1A1A1A]'}`} />
+                    {shippingErrors.city && <p className="text-xs text-red-600 mt-1">{shippingErrors.city}</p>}
+                  </div>
+                  <div>
+                    <select
+                      value={shippingData.country}
+                      onChange={e => { setShippingData({ ...shippingData, country: e.target.value }); setShippingErrors({ ...shippingErrors, country: '' }); }}
+                      className={`w-full border px-4 py-3 text-sm outline-none bg-white ${shippingErrors.country ? 'border-red-500' : 'border-[#E5E5E5] focus:border-[#1A1A1A]'}`}
+                    >
+                      <option value="">Country</option>
+                      {COUNTRIES.map(country => (
+                        <option key={country} value={country}>{country}</option>
+                      ))}
+                    </select>
+                    {shippingErrors.country && <p className="text-xs text-red-600 mt-1">{shippingErrors.country}</p>}
+                  </div>
+                  <div>
+                    <input placeholder="Postal Code" inputMode="numeric" value={shippingData.postalCode} onChange={e => { setShippingData({ ...shippingData, postalCode: e.target.value.replace(/\D/g, '') }); setShippingErrors({ ...shippingErrors, postalCode: '' }); }} className={`w-full border px-4 py-3 text-sm outline-none ${shippingErrors.postalCode ? 'border-red-500' : 'border-[#E5E5E5] focus:border-[#1A1A1A]'}`} />
+                    {shippingErrors.postalCode && <p className="text-xs text-red-600 mt-1">{shippingErrors.postalCode}</p>}
+                  </div>
                 </div>
-                <input placeholder="Phone" value={shippingData.phone} onChange={e => setShippingData({ ...shippingData, phone: e.target.value })} className="w-full border border-[#E5E5E5] px-4 py-3 text-sm mb-8 outline-none focus:border-[#1A1A1A]" />
+                <div className="mb-8">
+                  <input placeholder="Phone *" inputMode="numeric" value={shippingData.phone} onChange={e => { setShippingData({ ...shippingData, phone: e.target.value.replace(/\D/g, '') }); setShippingErrors({ ...shippingErrors, phone: '' }); }} className={`w-full border px-4 py-3 text-sm outline-none ${shippingErrors.phone ? 'border-red-500' : 'border-[#E5E5E5] focus:border-[#1A1A1A]'}`} />
+                  {shippingErrors.phone && <p className="text-xs text-red-600 mt-1">{shippingErrors.phone}</p>}
+                </div>
 
                 <h2 className="text-lg font-bold mb-6">Shipping Method</h2>
                 <div className="space-y-3 mb-8">
@@ -144,7 +185,7 @@ export function CheckoutPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium">{subtotal > 100 ? 'FREE' : '$8.00'}</span>
+                      <span className="text-sm font-medium">{subtotal > 100 ? 'FREE' : 'AED 8.00'}</span>
                       <input type="radio" name="shipping" checked={shippingMethod === 'standard'} onChange={() => setShippingMethod('standard')} className="accent-[#1A1A1A]" />
                     </div>
                   </label>
@@ -163,56 +204,9 @@ export function CheckoutPage() {
                   </label>
                 </div>
 
-                <button
-                  onClick={() => setStep('payment')}
-                  className="w-full bg-[#1A1A1A] text-white text-sm font-semibold uppercase tracking-[0.08em] py-4 hover:bg-[#333] transition-colors"
-                >
-                  Continue to Payment
-                </button>
-              </div>
-            )}
-
-            {step === 'payment' && (
-              <div>
-                <button onClick={() => setStep('shipping')} className="text-sm text-[#666] hover:text-[#1A1A1A] underline mb-6">
-                  Edit shipping info
-                </button>
-
-                <h2 className="text-lg font-bold mb-6">Payment Method</h2>
-                <div className="space-y-3 mb-8">
-                  <label className={`flex items-center gap-3 p-4 border cursor-pointer transition-colors ${paymentMethod === 'card' ? 'border-[#1A1A1A] bg-[#F5F5F5]' : 'border-[#E5E5E5]'}`}>
-                    <CreditCard size={18} />
-                    <span className="text-sm font-medium">Credit / Debit Card</span>
-                    <input type="radio" name="payment" checked={paymentMethod === 'card'} onChange={() => setPaymentMethod('card')} className="ml-auto accent-[#1A1A1A]" />
-                  </label>
-                  <label className={`flex items-center gap-3 p-4 border cursor-pointer transition-colors ${paymentMethod === 'paypal' ? 'border-[#1A1A1A] bg-[#F5F5F5]' : 'border-[#E5E5E5]'}`}>
-                    <span className="text-sm font-bold tracking-wider">Pay</span>
-                    <span className="text-sm font-medium">Pal</span>
-                    <input type="radio" name="payment" checked={paymentMethod === 'paypal'} onChange={() => setPaymentMethod('paypal')} className="ml-auto accent-[#1A1A1A]" />
-                  </label>
-                </div>
-
-                {paymentMethod === 'card' && (
-                  <div className="mb-8">
-                    <h3 className="text-sm font-semibold uppercase tracking-wider mb-4">Card Details</h3>
-                    <input
-                      placeholder="Card Number"
-                      value={cardData.number}
-                      onChange={e => setCardData({ ...cardData, number: e.target.value })}
-                      className="w-full border border-[#E5E5E5] px-4 py-3 text-sm mb-4 outline-none focus:border-[#1A1A1A]"
-                    />
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                      <input placeholder="MM/YY" value={cardData.expiry} onChange={e => setCardData({ ...cardData, expiry: e.target.value })} className="w-full border border-[#E5E5E5] px-4 py-3 text-sm outline-none focus:border-[#1A1A1A]" />
-                      <input placeholder="CVV" value={cardData.cvv} onChange={e => setCardData({ ...cardData, cvv: e.target.value })} className="w-full border border-[#E5E5E5] px-4 py-3 text-sm outline-none focus:border-[#1A1A1A]" />
-                      <input placeholder="ZIP" className="w-full border border-[#E5E5E5] px-4 py-3 text-sm outline-none focus:border-[#1A1A1A]" />
-                    </div>
-                    <input placeholder="Name on Card" value={cardData.name} onChange={e => setCardData({ ...cardData, name: e.target.value })} className="w-full border border-[#E5E5E5] px-4 py-3 text-sm outline-none focus:border-[#1A1A1A]" />
-                  </div>
-                )}
-
-                <div className="flex items-center gap-2 text-sm text-[#666] mb-8">
+                <div className="flex items-center gap-2 text-sm text-[#666] mb-6">
                   <Lock size={14} />
-                  <span>Your payment information is encrypted and secure.</span>
+                  <span>You'll enter your card details securely on Stripe's payment page next.</span>
                 </div>
 
                 <button
@@ -223,7 +217,6 @@ export function CheckoutPage() {
                   {processing ? 'Processing...' : `Place Order — AED ${total.toFixed(2)}`}
                 </button>
               </div>
-            )}
         </div>
       </div>
     </div>

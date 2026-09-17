@@ -1,23 +1,25 @@
+import { safeLocalStorage } from '@/lib/safeStorage';
+
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 const TOKEN_KEY = 'unistyle-token';
 const ADMIN_TOKEN_KEY = 'unistyle-admin-token';
 
 export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
+  return safeLocalStorage.getItem(TOKEN_KEY);
 }
 
 export function setToken(token: string | null) {
-  if (token) localStorage.setItem(TOKEN_KEY, token);
-  else localStorage.removeItem(TOKEN_KEY);
+  if (token) safeLocalStorage.setItem(TOKEN_KEY, token);
+  else safeLocalStorage.removeItem(TOKEN_KEY);
 }
 
 export function getAdminToken(): string | null {
-  return localStorage.getItem(ADMIN_TOKEN_KEY);
+  return safeLocalStorage.getItem(ADMIN_TOKEN_KEY);
 }
 
 export function setAdminToken(token: string | null) {
-  if (token) localStorage.setItem(ADMIN_TOKEN_KEY, token);
-  else localStorage.removeItem(ADMIN_TOKEN_KEY);
+  if (token) safeLocalStorage.setItem(ADMIN_TOKEN_KEY, token);
+  else safeLocalStorage.removeItem(ADMIN_TOKEN_KEY);
 }
 
 export function getAdminRole(): 'admin' | 'editor' | null {

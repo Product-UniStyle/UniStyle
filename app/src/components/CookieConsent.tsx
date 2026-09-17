@@ -1,20 +1,21 @@
 import { useState, useEffect } from 'react';
+import { safeLocalStorage } from '@/lib/safeStorage';
 
 export function CookieConsent() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const agreed = localStorage.getItem('unistyle-cookies');
+    const agreed = safeLocalStorage.getItem('unistyle-cookies');
     if (!agreed) setVisible(true);
   }, []);
 
   const handleAgree = () => {
-    localStorage.setItem('unistyle-cookies', 'true');
+    safeLocalStorage.setItem('unistyle-cookies', 'true');
     setVisible(false);
   };
 
   const handleDisagree = () => {
-    localStorage.setItem('unistyle-cookies', 'false');
+    safeLocalStorage.setItem('unistyle-cookies', 'false');
     setVisible(false);
   };
 

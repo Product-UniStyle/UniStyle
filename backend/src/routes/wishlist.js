@@ -15,7 +15,17 @@ router.get('/', async (req, res, next) => {
     const items = await WishlistItem.find({ userId: req.user.id })
       .populate('productId')
       .sort({ createdAt: -1 });
-    res.json({ items });
+
+    // Same as cart: a wishlist line can outlive the product it points to.
+    // Drop orphaned lines (productId: null after populate) and clean them up
+    // rather than shipping data that crashes the frontend's adapter.
+    const valid = items.filter(item => item.productId);
+    if (valid.length !== items.length) {
+      const orphanIds = items.filter(item => !item.productId).map(item => item._id);
+      await WishlistItem.deleteMany({ _id: { $in: orphanIds } });
+    }
+
+    res.json({ items: valid });
   } catch (err) {
     next(err);
   }

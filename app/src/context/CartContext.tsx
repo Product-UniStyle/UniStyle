@@ -3,6 +3,7 @@ import type { Product } from '@/data/products';
 import { api, type BackendCartItem } from '@/lib/api';
 import { adaptProduct } from '@/lib/productAdapter';
 import { useAuth } from '@/context/AuthContext';
+import { safeLocalStorage } from '@/lib/safeStorage';
 
 export interface CartItem {
   id: string;
@@ -42,7 +43,7 @@ const GUEST_CART_KEY = 'unistyle-guest-cart';
 
 function readGuestCart(): CartItem[] {
   try {
-    const saved = localStorage.getItem(GUEST_CART_KEY);
+    const saved = safeLocalStorage.getItem(GUEST_CART_KEY);
     return saved ? JSON.parse(saved) : [];
   } catch {
     return [];
@@ -50,7 +51,7 @@ function readGuestCart(): CartItem[] {
 }
 
 function writeGuestCart(items: CartItem[]) {
-  localStorage.setItem(GUEST_CART_KEY, JSON.stringify(items));
+  safeLocalStorage.setItem(GUEST_CART_KEY, JSON.stringify(items));
 }
 
 function fromBackend(item: BackendCartItem): CartItem {
@@ -92,7 +93,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         await api.addToCart({ productId: item.product.id, quantity: item.quantity, size: item.size, color: item.color }).catch(() => {});
       }
       if (guestItems.length) {
-        localStorage.removeItem(GUEST_CART_KEY);
+        safeLocalStorage.removeItem(GUEST_CART_KEY);
       }
       await refreshServerCart();
     })();
@@ -178,7 +179,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     setItems([]);
-    localStorage.removeItem(GUEST_CART_KEY);
+    safeLocalStorage.removeItem(GUEST_CART_KEY);
   }, [isAuthenticated, refreshServerCart]);
 
   // Keeps selection in sync as items change: a freshly added item is selected

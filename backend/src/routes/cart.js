@@ -27,7 +27,18 @@ router.get('/', async (req, res, next) => {
     const items = await CartItem.find({ userId: req.user.id })
       .populate('productId')
       .sort({ createdAt: -1 });
-    res.json({ items });
+
+    // A cart line can outlive the product it points to (e.g. the product gets
+    // deleted while still sitting in someone's cart) — populate() then returns
+    // productId: null, which crashes the frontend if shipped as-is. Drop those
+    // orphaned lines and clean them up rather than returning broken data.
+    const valid = items.filter(item => item.productId);
+    if (valid.length !== items.length) {
+      const orphanIds = items.filter(item => !item.productId).map(item => item._id);
+      await CartItem.deleteMany({ _id: { $in: orphanIds } });
+    }
+
+    res.json({ items: valid });
   } catch (err) {
     next(err);
   }

@@ -156,7 +156,7 @@ export const api = {
   removeFromWishlist: (productId: string) => request<void>(`/wishlist/${productId}`, { method: 'DELETE' }),
 
   // ---- Checkout / Orders ----
-  createCheckoutSession: (data: { shippingAddress: BackendAddressInput }) =>
+  createCheckoutSession: (data: { shippingAddress: BackendAddressInput; itemIds?: string[] }) =>
     request<{ orderId: string; redirectUrl?: string; url?: string }>('/checkout/create-session', {
       method: 'POST',
       body: JSON.stringify(data),

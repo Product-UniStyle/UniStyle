@@ -21,6 +21,9 @@ const addressSchema = z.object({
 
 const checkoutSchema = z.object({
   shippingAddress: addressSchema,
+  // Cart line ids the user checked on the cart page. Omitted/empty means "check out
+  // everything currently in the cart" (kept for backward compatibility).
+  itemIds: z.array(z.string().length(24)).optional(),
 });
 
 // POST /api/checkout/create-session
@@ -30,10 +33,13 @@ router.post('/create-session', requireAuth, async (req, res, next) => {
   try {
     const data = checkoutSchema.parse(req.body);
 
-    const cartItems = await CartItem.find({ userId: req.user.id }).populate('productId');
+    const cartFilter = { userId: req.user.id };
+    if (data.itemIds?.length) cartFilter._id = { $in: data.itemIds };
+
+    const cartItems = await CartItem.find(cartFilter).populate('productId');
 
     if (cartItems.length === 0) {
-      return res.status(400).json({ error: 'Cart is empty' });
+      return res.status(400).json({ error: data.itemIds?.length ? 'Selected items not found in cart' : 'Cart is empty' });
     }
 
     const total = cartItems.reduce((sum, item) => sum + item.productId.price * item.quantity, 0);
@@ -50,6 +56,7 @@ router.post('/create-session', requireAuth, async (req, res, next) => {
         color: item.color,
         price: item.productId.price,
       })),
+      cartItemIds: cartItems.map((item) => item._id),
     });
 
     if (!stripe) {
@@ -58,7 +65,7 @@ router.post('/create-session', requireAuth, async (req, res, next) => {
       // below once STRIPE_SECRET_KEY is set.
       order.status = 'PAID';
       await order.save();
-      await CartItem.deleteMany({ userId: req.user.id });
+      await CartItem.deleteMany({ _id: { $in: order.cartItemIds } });
 
       return res.json({
         orderId: order.id,
@@ -116,12 +123,15 @@ router.post('/webhook', async (req, res) => {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    const { orderId, userId } = session.metadata;
+    const { orderId } = session.metadata;
 
     try {
-      await Order.findByIdAndUpdate(orderId, { status: 'PAID' });
-      // Clear the user's cart now that the order is confirmed paid
-      await CartItem.deleteMany({ userId });
+      const order = await Order.findByIdAndUpdate(orderId, { status: 'PAID' });
+      // Clear only the cart lines this order was built from, so items the user
+      // didn't select for checkout stay in their cart.
+      if (order?.cartItemIds?.length) {
+        await CartItem.deleteMany({ _id: { $in: order.cartItemIds } });
+      }
     } catch (err) {
       console.error('Failed to finalize order after payment:', err);
     }

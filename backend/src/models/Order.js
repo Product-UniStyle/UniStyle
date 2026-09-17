@@ -30,6 +30,10 @@ const orderSchema = new mongoose.Schema({
   stripeSessionId: { type: String, unique: true, sparse: true },
   shippingAddress: { type: addressSnapshotSchema, required: true },
   items: { type: [orderItemSchema], default: [] },
+  // Which CartItem docs this order was built from — kept so the Stripe webhook can
+  // remove exactly those lines from the cart, leaving items the user didn't select
+  // for checkout untouched.
+  cartItemIds: { type: [mongoose.Schema.Types.ObjectId], default: [] },
 }, { timestamps: true });
 
 export default mongoose.model('Order', orderSchema);

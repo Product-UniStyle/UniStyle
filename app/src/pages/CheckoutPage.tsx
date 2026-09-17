@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CreditCard, Lock, ChevronLeft, ShieldCheck, Truck } from 'lucide-react';
+import { CreditCard, Lock, ChevronLeft, Truck } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { showToast } from '@/components/ToastContainer';
 import { api, ApiError } from '@/lib/api';
 
 export function CheckoutPage() {
-  const { items, subtotal, clearCart } = useCart();
+  const { selectedItems: items, selectedSubtotal: subtotal, discount, removeItems } = useCart();
   const { user, isAuthenticated, refreshOrders } = useAuth();
   const navigate = useNavigate();
 
@@ -27,22 +27,10 @@ export function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'paypal'>('card');
   const [cardData, setCardData] = useState({ number: '', expiry: '', cvv: '', name: '' });
   const [processing, setProcessing] = useState(false);
-  const [promoCode, setPromoCode] = useState('');
-  const [promoApplied, setPromoApplied] = useState(false);
 
   const shippingCost = shippingMethod === 'express' ? 15 : subtotal > 100 ? 0 : 8;
-  const discount = promoApplied ? subtotal * 0.1 : 0;
   const tax = (subtotal - discount) * 0.08;
   const total = subtotal - discount + shippingCost + tax;
-
-  const handleApplyPromo = () => {
-    if (promoCode.toUpperCase() === 'SAVE10') {
-      setPromoApplied(true);
-      showToast('Promo code applied!');
-    } else {
-      showToast('Invalid promo code', 'error');
-    }
-  };
 
   const handlePlaceOrder = async () => {
     if (!isAuthenticated) {
@@ -53,6 +41,7 @@ export function CheckoutPage() {
 
     setProcessing(true);
     try {
+      const orderedItemIds = items.map(item => item.id);
       const { orderId, redirectUrl, url } = await api.createCheckoutSession({
         shippingAddress: {
           fullName: `${shippingData.firstName} ${shippingData.lastName}`.trim(),
@@ -63,9 +52,10 @@ export function CheckoutPage() {
           country: shippingData.country,
           phone: shippingData.phone || undefined,
         },
+        itemIds: orderedItemIds,
       });
 
-      clearCart();
+      removeItems(orderedItemIds);
       showToast('Order placed successfully!');
       await refreshOrders();
 
@@ -104,9 +94,7 @@ export function CheckoutPage() {
 
         <h1 className="text-3xl font-bold tracking-tight mb-10">Checkout</h1>
 
-        <div className="flex flex-col lg:flex-row gap-12">
-          {/* Left: Form */}
-          <div className="flex-1">
+        <div className="max-w-[720px]">
             {/* Progress */}
             <div className="flex items-center gap-4 mb-10">
               <div className={`flex items-center gap-2 text-sm font-medium ${step === 'shipping' || step === 'payment' ? 'text-[#1A1A1A]' : 'text-[#999]'}`}>
@@ -236,85 +224,6 @@ export function CheckoutPage() {
                 </button>
               </div>
             )}
-          </div>
-
-          {/* Right: Order Summary */}
-          <div className="w-full lg:w-[380px] shrink-0">
-            <div className="bg-[#F5F5F5] p-6">
-              <h3 className="font-bold mb-6">Order Summary</h3>
-
-              {/* Items */}
-              <div className="space-y-4 mb-6 max-h-[300px] overflow-y-auto">
-                {items.map(item => (
-                  <div key={item.id} className="flex items-center gap-3">
-                    <div className="relative w-16 h-16 bg-white shrink-0">
-                      <img src={item.product.images[0]} alt={item.product.name} className="w-full h-full object-cover" />
-                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#1A1A1A] text-white text-[10px] flex items-center justify-center font-medium">
-                        {item.quantity}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{item.product.name}</p>
-                      {item.color && <p className="text-xs text-[#999]">{item.color}</p>}
-                      {item.size && <p className="text-xs text-[#999]">{item.size}</p>}
-                    </div>
-                    <p className="text-sm font-medium">AED {((item.product.salePrice || item.product.price) * item.quantity).toFixed(2)}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Promo */}
-              <div className="flex items-center gap-2 mb-6 pb-6 border-b border-[#E5E5E5]">
-                <input
-                  type="text"
-                  placeholder="Promo code"
-                  value={promoCode}
-                  onChange={e => setPromoCode(e.target.value)}
-                  className="flex-1 bg-white border border-[#E5E5E5] px-3 py-2.5 text-sm outline-none focus:border-[#1A1A1A]"
-                />
-                <button
-                  onClick={handleApplyPromo}
-                  className="bg-[#1A1A1A] text-white text-xs font-semibold uppercase tracking-wider px-4 py-2.5 hover:bg-[#333] transition-colors"
-                >
-                  Apply
-                </button>
-              </div>
-
-              {/* Totals */}
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#666]">Subtotal</span>
-                  <span>AED {subtotal.toFixed(2)}</span>
-                </div>
-                {promoApplied && (
-                  <div className="flex justify-between text-sm text-green-600">
-                    <span>Discount (SAVE10)</span>
-                    <span>-AED {discount.toFixed(2)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#666]">Shipping</span>
-                  <span>{shippingCost === 0 ? 'FREE' : `AED ${shippingCost.toFixed(2)}`}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#666]">Tax</span>
-                  <span>AED {tax.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between pt-3 border-t border-[#E5E5E5]">
-                  <span className="font-bold">Total</span>
-                  <span className="font-bold text-xl">AED {total.toFixed(2)}</span>
-                </div>
-              </div>
-
-              {/* Security */}
-              <div className="flex items-center justify-center gap-2 text-xs text-[#999]">
-                <ShieldCheck size={14} />
-                <span>Secure checkout</span>
-                <Lock size={14} />
-                <span>SSL encrypted</span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

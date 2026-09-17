@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Minus, Plus, X, ShoppingBag, Heart, Lock, ChevronLeft, ChevronDown } from 'lucide-react';
+import { Minus, Plus, X, ShoppingBag, Heart, Lock, ChevronLeft, ChevronDown, Check } from 'lucide-react';
 import { useCart, type CartItem } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { useProducts } from '@/hooks/useProducts';
@@ -81,7 +81,7 @@ function SizeModal({ item, onClose, onSelect }: {
               key={size}
               onClick={() => onSelect(size)}
               className={`h-11 flex items-center justify-center rounded-full border text-sm font-semibold transition-colors ${
-                item.size === size ? 'border-[#E4007C] text-[#E4007C]' : 'border-[#E5E5E5] text-[#1A1A1A] hover:border-[#1A1A1A]'
+                item.size === size ? 'border-[#1A1A1A] bg-[#1A1A1A] text-white' : 'border-[#E5E5E5] text-[#1A1A1A] hover:border-[#1A1A1A]'
               }`}
             >
               {size}
@@ -158,11 +158,32 @@ function YouMayAlsoLike() {
 }
 
 export function CartPage() {
-  const { items, removeFromCart, updateQuantity, updateSize, subtotal } = useCart();
+  const {
+    items, removeFromCart, updateQuantity, updateSize,
+    isSelected, toggleSelected, selectAll, deselectAll, selectedItems, selectedSubtotal,
+    promoCode, promoApplied, discount, applyPromoCode, removePromoCode,
+  } = useCart();
   const { addToWishlist } = useWishlist();
   const navigate = useNavigate();
   const [itemToRemove, setItemToRemove] = useState<CartItem | null>(null);
   const [sizeModalItem, setSizeModalItem] = useState<CartItem | null>(null);
+  const [promoInput, setPromoInput] = useState('');
+
+  const handleApplyPromo = () => {
+    if (applyPromoCode(promoInput)) {
+      showToast('Promo code applied!');
+    } else {
+      showToast('Invalid promo code', 'error');
+    }
+  };
+
+  // Sum of list prices (before any per-product sale) for the selected lines —
+  // compared against selectedSubtotal (which already uses salePrice) to show
+  // how much of the total saving came from product discounts vs. the coupon.
+  const totalMrp = selectedItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const mrpDiscount = totalMrp - selectedSubtotal;
+  const totalSavings = mrpDiscount + discount;
+  const payable = selectedSubtotal - discount;
 
   if (items.length === 0) {
     return (
@@ -248,6 +269,38 @@ export function CartPage() {
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Cart Items */}
           <div className="flex-1 min-w-0">
+            {/* Selection bar */}
+            <div className="flex items-center justify-between mb-4 pb-4 border-b border-[#E5E5E5]">
+              <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedItems.length > 0 && selectedItems.length === items.length}
+                  ref={el => {
+                    if (el) el.indeterminate = selectedItems.length > 0 && selectedItems.length < items.length;
+                  }}
+                  onChange={() => (selectedItems.length === items.length ? deselectAll() : selectAll())}
+                  className="accent-[#1A1A1A]"
+                />
+                {selectedItems.length}/{items.length} Items Selected
+              </label>
+              {selectedItems.length > 0 && (
+                <div className="flex items-center gap-4 text-xs font-semibold uppercase tracking-wider">
+                  <button
+                    onClick={() => selectedItems.forEach(item => removeFromCart(item.id))}
+                    className="text-[#666] hover:text-[#DC2626] transition-colors"
+                  >
+                    Remove
+                  </button>
+                  <button
+                    onClick={() => selectedItems.forEach(item => { addToWishlist(item.product); removeFromCart(item.id); })}
+                    className="text-[#666] hover:text-[#1A1A1A] transition-colors"
+                  >
+                    Move to Wishlist
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* Table header */}
             <div className="hidden md:grid md:grid-cols-[2fr_1fr_1fr_1fr_1fr_40px] pb-3 mb-2 border-b border-[#E5E5E5] text-xs font-medium uppercase tracking-wider text-[#999]">
               <span>Product</span>
@@ -267,9 +320,21 @@ export function CartPage() {
                   <div key={item.id} className="flex flex-col md:grid md:grid-cols-[2fr_1fr_1fr_1fr_1fr_40px] items-start md:items-center gap-4 py-5">
                     {/* Product info */}
                     <div className="flex items-center gap-4">
-                      <Link to={`/product/${item.product.slug}`} className="w-[72px] h-[72px] bg-[#F5F5F5] shrink-0 overflow-hidden">
-                        <img src={item.product.images[0]} alt={item.product.name} className="w-full h-full object-cover" />
-                      </Link>
+                      <div className="relative w-[72px] h-[72px] shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => toggleSelected(item.id)}
+                          aria-label={isSelected(item.id) ? 'Deselect item' : 'Select item'}
+                          className={`absolute -top-1.5 -left-1.5 z-10 w-5 h-5 flex items-center justify-center border-2 transition-colors ${
+                            isSelected(item.id) ? 'bg-[#1A1A1A] border-[#1A1A1A] text-white' : 'bg-white border-[#CCC]'
+                          }`}
+                        >
+                          {isSelected(item.id) && <Check size={12} strokeWidth={3} />}
+                        </button>
+                        <Link to={`/product/${item.product.slug}`} className="block w-full h-full bg-[#F5F5F5] overflow-hidden">
+                          <img src={item.product.images[0]} alt={item.product.name} className="w-full h-full object-cover" />
+                        </Link>
+                      </div>
                       <div>
                         <Link to={`/product/${item.product.slug}`} className="text-sm font-semibold text-[#1A1A1A] hover:underline leading-snug">
                           {item.product.name}
@@ -343,26 +408,74 @@ export function CartPage() {
           {/* Cart Totals */}
           <div className="w-full lg:w-[300px] xl:w-[340px] shrink-0">
             <div className="border border-[#E5E5E5] p-6">
-              <h3 className="text-base font-bold uppercase tracking-wider mb-6">Cart Totals</h3>
+              <h3 className="text-base font-bold uppercase tracking-wider mb-1">Cart Totals</h3>
+              <p className="text-xs text-[#999] mb-5">{selectedItems.length} of {items.length} items selected</p>
+
+              {/* Coupon */}
+              <div className="mb-5 pb-5 border-b border-[#E5E5E5]">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-[#666] mb-2">Coupons</h4>
+                {promoApplied ? (
+                  <div className="flex items-center justify-between bg-[#F5F5F5] px-3 py-2.5 text-sm">
+                    <span className="font-medium text-[#1A1A1A]">{promoCode} applied</span>
+                    <button onClick={removePromoCode} className="text-xs font-semibold text-[#DC2626] hover:underline">
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Enter coupon code"
+                      value={promoInput}
+                      onChange={e => setPromoInput(e.target.value)}
+                      className="flex-1 min-w-0 border border-[#E5E5E5] px-3 py-2.5 text-sm outline-none focus:border-[#1A1A1A]"
+                    />
+                    <button
+                      onClick={handleApplyPromo}
+                      className="bg-[#1A1A1A] text-white text-xs font-semibold uppercase tracking-wider px-4 py-2.5 hover:bg-[#333] transition-colors shrink-0"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                )}
+              </div>
 
               <div className="space-y-3 mb-5">
                 <div className="flex justify-between text-sm">
-                  <span className="text-[#666]">Subtotal</span>
-                  <span className="font-medium">${subtotal.toFixed(2)}</span>
+                  <span className="text-[#666]">Total MRP</span>
+                  <span className="font-medium">${totalMrp.toFixed(2)}</span>
                 </div>
+                {mrpDiscount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Discount on MRP</span>
+                    <span>-${mrpDiscount.toFixed(2)}</span>
+                  </div>
+                )}
+                {promoApplied && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Coupon Discount ({promoCode})</span>
+                    <span>-${discount.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm pb-5 border-b border-[#E5E5E5]">
                   <span className="text-[#666]">Shipping</span>
                   <span className="text-[#999] text-xs">Calculated at checkout</span>
                 </div>
                 <div className="flex justify-between items-center pt-1">
                   <span className="text-sm font-bold">Total</span>
-                  <span className="font-bold text-xl">${subtotal.toFixed(2)}</span>
+                  <span className="font-bold text-xl">${payable.toFixed(2)}</span>
                 </div>
+                {totalSavings > 0 && (
+                  <p className="text-xs font-semibold text-green-600 text-center pt-1">
+                    You will save ${totalSavings.toFixed(2)} on this order
+                  </p>
+                )}
               </div>
 
               <button
                 onClick={() => navigate('/checkout')}
-                className="w-full bg-[#1A1A1A] text-white text-xs font-semibold uppercase tracking-[0.1em] py-4 hover:bg-[#333] transition-colors mb-3"
+                disabled={selectedItems.length === 0}
+                className="w-full bg-[#1A1A1A] text-white text-xs font-semibold uppercase tracking-[0.1em] py-4 hover:bg-[#333] transition-colors mb-3 disabled:opacity-40 disabled:hover:bg-[#1A1A1A] disabled:cursor-not-allowed"
               >
                 Proceed to Checkout
               </button>

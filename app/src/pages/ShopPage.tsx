@@ -228,6 +228,19 @@ export function ShopPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showMoreOpen, setShowMoreOpen] = useState(false);
 
+  // Myntra-style "+N more" — each filter list shows only the first FILTER_LIMIT
+  // options until its section is expanded, so a facet with hundreds of values
+  // (e.g. institutions) doesn't blow out the sidebar.
+  const FILTER_LIMIT = 5;
+  const [expandedFilters, setExpandedFilters] = useState<Set<string>>(new Set());
+  const toggleExpanded = (key: string) => {
+    setExpandedFilters(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
   const PAGE_SIZE = 100;
   const [page, setPage] = useState<number>(() => {
     try {
@@ -595,7 +608,7 @@ export function ShopPage() {
                   <div className="mb-6">
                     <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Universities</h4>
                     <div className="space-y-2">
-                      {universities.map(uni => {
+                      {(expandedFilters.has('universities') ? universities : universities.slice(0, FILTER_LIMIT)).map(uni => {
                         const count = institutionBase.filter(p => p.institution === uni).length;
                         return (
                           <label key={uni} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
@@ -605,6 +618,15 @@ export function ShopPage() {
                         );
                       })}
                     </div>
+                    {universities.length > FILTER_LIMIT && (
+                      <button
+                        type="button"
+                        onClick={() => toggleExpanded('universities')}
+                        className="text-xs font-medium text-[#DC2626] hover:underline transition-colors mt-2"
+                      >
+                        {expandedFilters.has('universities') ? 'Show less' : `+ ${universities.length - FILTER_LIMIT} more`}
+                      </button>
+                    )}
                   </div>
                 )}
 
@@ -613,7 +635,7 @@ export function ShopPage() {
                   <div className="mb-6">
                     <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Schools</h4>
                     <div className="space-y-2">
-                      {schools.map(school => {
+                      {(expandedFilters.has('schools') ? schools : schools.slice(0, FILTER_LIMIT)).map(school => {
                         const count = institutionBase.filter(p => p.institution === school).length;
                         return (
                           <label key={school} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
@@ -623,6 +645,15 @@ export function ShopPage() {
                         );
                       })}
                     </div>
+                    {schools.length > FILTER_LIMIT && (
+                      <button
+                        type="button"
+                        onClick={() => toggleExpanded('schools')}
+                        className="text-xs font-medium text-[#DC2626] hover:underline transition-colors mt-2"
+                      >
+                        {expandedFilters.has('schools') ? 'Show less' : `+ ${schools.length - FILTER_LIMIT} more`}
+                      </button>
+                    )}
                   </div>
                 )}
 
@@ -630,7 +661,7 @@ export function ShopPage() {
                 <div className="mb-6">
                   <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Categories</h4>
                   <div className="space-y-2">
-                    {sortedClothingCategories.map(cat => {
+                    {(expandedFilters.has('categories') ? sortedClothingCategories : sortedClothingCategories.slice(0, FILTER_LIMIT)).map(cat => {
                       const count = categoryBase.filter(p => p.category === cat).length;
                       const label = CATEGORY_LABELS[cat] || cat;
                       return (
@@ -640,6 +671,15 @@ export function ShopPage() {
                         </label>
                       );
                     })}
+                    {sortedClothingCategories.length > FILTER_LIMIT && (
+                      <button
+                        type="button"
+                        onClick={() => toggleExpanded('categories')}
+                        className="text-xs font-medium text-[#DC2626] hover:underline transition-colors"
+                      >
+                        {expandedFilters.has('categories') ? 'Show less' : `+ ${sortedClothingCategories.length - FILTER_LIMIT} more`}
+                      </button>
+                    )}
                     {accessorySubcategories.length > 0 && (
                       <div>
                         <div className="flex items-center justify-between w-full text-sm text-[#666]">
@@ -750,7 +790,7 @@ export function ShopPage() {
                 <div className="mb-6">
                   <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Color</h4>
                   <div className="flex flex-wrap gap-2">
-                    {colorOptions.map(c => {
+                    {(expandedFilters.has('colors') ? colorOptions : colorOptions.slice(0, FILTER_LIMIT)).map(c => {
                       const count = colorBase.filter(p => p.colors?.some(pc => pc.name === c.name)).length;
                       return (
                         <button
@@ -763,6 +803,15 @@ export function ShopPage() {
                       );
                     })}
                   </div>
+                  {colorOptions.length > FILTER_LIMIT && (
+                    <button
+                      type="button"
+                      onClick={() => toggleExpanded('colors')}
+                      className="text-xs font-medium text-[#DC2626] hover:underline transition-colors mt-2"
+                    >
+                      {expandedFilters.has('colors') ? 'Show less' : `+ ${colorOptions.length - FILTER_LIMIT} more`}
+                    </button>
+                  )}
                 </div>
                 )}
 
@@ -770,7 +819,7 @@ export function ShopPage() {
                 <div className="mb-6">
                   <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Discount Range</h4>
                   <div className="space-y-2">
-                    {DISCOUNT_TIERS.map(tier => {
+                    {(expandedFilters.has('discount') ? DISCOUNT_TIERS : DISCOUNT_TIERS.slice(0, FILTER_LIMIT)).map(tier => {
                       const count = discountBase.filter(p => discountPercent(p) >= tier).length;
                       return (
                         <label key={tier} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
@@ -780,6 +829,15 @@ export function ShopPage() {
                       );
                     })}
                   </div>
+                  {DISCOUNT_TIERS.length > FILTER_LIMIT && (
+                    <button
+                      type="button"
+                      onClick={() => toggleExpanded('discount')}
+                      className="text-xs font-medium text-[#DC2626] hover:underline transition-colors mt-2"
+                    >
+                      {expandedFilters.has('discount') ? 'Show less' : `+ ${DISCOUNT_TIERS.length - FILTER_LIMIT} more`}
+                    </button>
+                  )}
                 </div>
 
                 {/* Show more */}

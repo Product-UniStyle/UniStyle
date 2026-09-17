@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Minus, Plus, X, ShoppingBag, Heart, Lock, ChevronLeft, ChevronDown, Check } from 'lucide-react';
 import { useCart, type CartItem } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
+import { useAuth } from '@/context/AuthContext';
 import { useProducts } from '@/hooks/useProducts';
 import { showToast } from '@/components/ToastContainer';
 
@@ -164,10 +165,20 @@ export function CartPage() {
     promoCode, promoApplied, discount, applyPromoCode, removePromoCode,
   } = useCart();
   const { addToWishlist } = useWishlist();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [itemToRemove, setItemToRemove] = useState<CartItem | null>(null);
   const [sizeModalItem, setSizeModalItem] = useState<CartItem | null>(null);
   const [promoInput, setPromoInput] = useState('');
+
+  const handleProceedToCheckout = () => {
+    if (!isAuthenticated) {
+      showToast('Please sign in to checkout', 'error');
+      navigate('/account');
+      return;
+    }
+    navigate('/checkout');
+  };
 
   const handleApplyPromo = () => {
     if (applyPromoCode(promoInput)) {
@@ -473,7 +484,7 @@ export function CartPage() {
               </div>
 
               <button
-                onClick={() => navigate('/checkout')}
+                onClick={handleProceedToCheckout}
                 disabled={selectedItems.length === 0}
                 className="w-full bg-[#1A1A1A] text-white text-xs font-semibold uppercase tracking-[0.1em] py-4 hover:bg-[#333] transition-colors mb-3 disabled:opacity-40 disabled:hover:bg-[#1A1A1A] disabled:cursor-not-allowed"
               >

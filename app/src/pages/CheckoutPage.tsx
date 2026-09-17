@@ -220,7 +220,7 @@ export function CheckoutPage() {
                   disabled={processing}
                   className="w-full bg-[#1A1A1A] text-white text-sm font-semibold uppercase tracking-[0.08em] py-4 hover:bg-[#333] transition-colors disabled:opacity-50"
                 >
-                  {processing ? 'Processing...' : `Place Order — $AED {total.toFixed(2)}`}
+                  {processing ? 'Processing...' : `Place Order — AED ${total.toFixed(2)}`}
                 </button>
               </div>
             )}

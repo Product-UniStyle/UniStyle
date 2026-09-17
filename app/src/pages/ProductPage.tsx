@@ -83,8 +83,8 @@ function CollectionCard({ product }: { product: Product }) {
         </Link>
         <button
           onClick={() => {
-            if (inWishlist) { removeFromWishlist(product.id); showToast('Removed from wishlist'); }
-            else { addToWishlist(product); showToast('Added to wishlist'); }
+            if (inWishlist) removeFromWishlist(product.id);
+            else addToWishlist(product);
           }}
           className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white flex items-center justify-center shadow"
         >
@@ -367,8 +367,8 @@ export function ProductPage() {
               <div className="flex items-center gap-3 text-[#666] shrink-0 pt-2">
                 <button
                   onClick={() => {
-                    if (inWishlist) { removeFromWishlist(product.id); showToast('Removed from wishlist'); }
-                    else { addToWishlist(product); showToast('Added to wishlist'); }
+                    if (inWishlist) removeFromWishlist(product.id);
+                    else addToWishlist(product);
                   }}
                   className="hover:text-[#1A1A1A] transition-colors"
                   title={inWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}

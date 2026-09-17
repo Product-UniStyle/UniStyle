@@ -12,6 +12,7 @@ import { OrdersTab } from './account/OrdersTab';
 import { AddressesTab } from './account/AddressesTab';
 import { PaymentMethodsTab } from './account/PaymentMethodsTab';
 import { AccountDetailsTab } from './account/AccountDetailsTab';
+import { ChangePasswordTab } from './account/ChangePasswordTab';
 import { SecurityTab } from './account/SecurityTab';
 import { ReviewsTab } from './account/ReviewsTab';
 
@@ -188,6 +189,7 @@ export function AccountPage() {
     { id: 'addresses', label: 'Addresses', icon: MapPin },
     { id: 'payment', label: 'Payment Methods', icon: CreditCard },
     { id: 'account', label: 'Account Details', icon: User },
+    { id: 'password', label: 'Change Password', icon: Lock },
     { id: 'security', label: 'Security', icon: Shield },
     { id: 'reviews', label: 'Reviews', icon: Star },
   ];
@@ -354,7 +356,7 @@ export function AccountPage() {
                   <div className="border border-[#E5E5E5] p-6">
                     <h3 className="font-bold mb-5">Security</h3>
                     <div className="space-y-1">
-                      <button onClick={() => setActiveTab('security')} className="w-full flex items-center justify-between py-3 border-b border-[#F0F0F0] hover:text-[#1A1A1A] text-left">
+                      <button onClick={() => setActiveTab('password')} className="w-full flex items-center justify-between py-3 border-b border-[#F0F0F0] hover:text-[#1A1A1A] text-left">
                         <span className="flex items-center gap-3">
                           <Lock size={16} className="text-[#999]" />
                           <span>
@@ -481,8 +483,12 @@ export function AccountPage() {
               <AccountDetailsTab user={user} updateProfile={updateProfile} deleteAccount={deleteAccount} />
             )}
 
+            {activeTab === 'password' && (
+              <ChangePasswordTab changePassword={changePassword} />
+            )}
+
             {activeTab === 'security' && (
-              <SecurityTab changePassword={changePassword} deleteAccount={deleteAccount} />
+              <SecurityTab deleteAccount={deleteAccount} />
             )}
 
             {activeTab === 'reviews' && <ReviewsTab />}

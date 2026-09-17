@@ -1,10 +1,11 @@
 import { useMemo, useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { Heart, ShoppingBag, Trash2, ChevronDown, Filter, ChevronRight, X } from 'lucide-react';
 import type { Product } from '@/data/products';
 import { useProducts } from '@/hooks/useProducts';
 import { useWishlist } from '@/context/WishlistContext';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
 import { showToast } from '@/components/ToastContainer';
 
 const sortOptions = [
@@ -30,10 +31,7 @@ function WishlistCard({ product }: { product: Product }) {
           />
         </Link>
         <button
-          onClick={() => {
-            removeFromWishlist(product.id);
-            showToast('Removed from wishlist');
-          }}
+          onClick={() => removeFromWishlist(product.id)}
           className="absolute top-3 right-3 w-8 h-8 bg-white/90 flex items-center justify-center text-[#1A1A1A] hover:text-[#DC2626] transition-colors"
           aria-label="Remove from wishlist"
         >
@@ -107,8 +105,8 @@ function RecommendedCard({ product }: { product: Product }) {
         </Link>
         <button
           onClick={() => {
-            if (inWishlist) { removeFromWishlist(product.id); showToast('Removed from wishlist'); }
-            else { addToWishlist(product); showToast('Added to wishlist'); }
+            if (inWishlist) removeFromWishlist(product.id);
+            else addToWishlist(product);
           }}
           className={`absolute top-3 right-3 w-8 h-8 bg-white/90 flex items-center justify-center transition-colors ${inWishlist ? 'text-[#1A1A1A]' : 'text-[#666] hover:text-[#1A1A1A]'}`}
           aria-label="Toggle wishlist"
@@ -135,6 +133,7 @@ function RecommendedCard({ product }: { product: Product }) {
 }
 
 export function WishlistPage() {
+  const { isAuthenticated } = useAuth();
   const { items, clearWishlist } = useWishlist();
   const { addToCart } = useCart();
   const { products: allProducts } = useProducts();
@@ -236,6 +235,10 @@ export function WishlistPage() {
     clearWishlist();
     showToast('Wishlist cleared');
   };
+
+  if (!isAuthenticated) {
+    return <Navigate to="/account" replace />;
+  }
 
   return (
     <div className="mt-[72px]">

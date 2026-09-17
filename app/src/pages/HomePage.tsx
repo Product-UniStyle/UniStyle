@@ -105,8 +105,8 @@ function FeaturedProductsSection() {
                 </button>
                 <button
                   onClick={() => {
-                    if (activeInWishlist) { removeFromWishlist(active.id); showToast('Removed from wishlist'); }
-                    else { addToWishlist(active); showToast('Added to wishlist'); }
+                    if (activeInWishlist) removeFromWishlist(active.id);
+                    else addToWishlist(active);
                   }}
                   className={`w-10 flex items-center justify-center border ${activeInWishlist ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]' : 'bg-white text-[#1A1A1A] border-[#E5E5E5]'} hover:bg-[#1A1A1A] hover:text-white transition-colors`}
                 >
@@ -157,8 +157,8 @@ function ProductTile({ product }: { product: Product }) {
           </button>
           <button
             onClick={() => {
-              if (inWishlist) { removeFromWishlist(product.id); showToast('Removed from wishlist'); }
-              else { addToWishlist(product); showToast('Added to wishlist'); }
+              if (inWishlist) removeFromWishlist(product.id);
+              else addToWishlist(product);
             }}
             className={`w-10 flex items-center justify-center border ${inWishlist ? 'bg-[#1A1A1A] text-white border-[#1A1A1A]' : 'bg-white text-[#1A1A1A] border-[#E5E5E5]'} hover:bg-[#1A1A1A] hover:text-white transition-colors`}
           >

@@ -129,8 +129,8 @@ function ProductCard({ product, color }: { product: Product; color?: ProductColo
           </button>
           <button
             onClick={() => {
-              if (inWishlist) { removeFromWishlist(product.id); showToast('Removed from wishlist'); }
-              else { addToWishlist(product); showToast('Added to wishlist'); }
+              if (inWishlist) removeFromWishlist(product.id);
+              else addToWishlist(product);
             }}
             className={`w-10 flex items-center justify-center border ${inWishlist ? 'bg-[#1A1A1A] text-white' : 'bg-white text-[#1A1A1A]'} transition-colors`}
           >

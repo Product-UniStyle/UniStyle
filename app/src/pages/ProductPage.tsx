@@ -304,8 +304,6 @@ export function ProductPage() {
           )}
           <span className="mx-2">/</span>
           <Link to={`/shop?category=${encodeURIComponent(product.category)}`} className="hover:underline">{product.category}</Link>
-          <span className="mx-2">/</span>
-          <span className="text-[#1A1A1A]">{product.name}</span>
         </nav>
       </div>
 

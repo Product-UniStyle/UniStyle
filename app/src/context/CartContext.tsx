@@ -17,6 +17,7 @@ interface CartContextType {
   addToCart: (product: Product, color?: string, size?: string, quantity?: number) => void;
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
+  updateSize: (itemId: string, size: string) => void;
   clearCart: () => void;
   totalItems: number;
   subtotal: number;
@@ -116,7 +117,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     if (isAuthenticated) {
-      api.updateCartItem(itemId, quantity).then(refreshServerCart);
+      api.updateCartItem(itemId, { quantity }).then(refreshServerCart);
       return;
     }
     setItems(prev => {
@@ -125,6 +126,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return newItems;
     });
   }, [isAuthenticated, refreshServerCart, removeFromCart]);
+
+  const updateSize = useCallback((itemId: string, size: string) => {
+    if (isAuthenticated) {
+      api.updateCartItem(itemId, { size }).then(refreshServerCart);
+      return;
+    }
+    setItems(prev => {
+      const newItems = prev.map(item => item.id === itemId ? { ...item, size } : item);
+      writeGuestCart(newItems);
+      return newItems;
+    });
+  }, [isAuthenticated, refreshServerCart]);
 
   const clearCart = useCallback(() => {
     if (isAuthenticated) {
@@ -142,7 +155,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <CartContext.Provider value={{ items, addToCart, removeFromCart, updateQuantity, clearCart, totalItems, subtotal }}>
+    <CartContext.Provider value={{ items, addToCart, removeFromCart, updateQuantity, updateSize, clearCart, totalItems, subtotal }}>
       {children}
     </CartContext.Provider>
   );

@@ -15,7 +15,10 @@ const addItemSchema = z.object({
 });
 
 const updateItemSchema = z.object({
-  quantity: z.number().int().min(1),
+  quantity: z.number().int().min(1).optional(),
+  size: z.string().optional(),
+}).refine(data => data.quantity !== undefined || data.size !== undefined, {
+  message: 'quantity or size is required',
 });
 
 // GET /api/cart
@@ -71,7 +74,8 @@ router.patch('/:itemId', async (req, res, next) => {
       return res.status(404).json({ error: 'Cart item not found' });
     }
 
-    item.quantity = data.quantity;
+    if (data.quantity !== undefined) item.quantity = data.quantity;
+    if (data.size !== undefined) item.size = data.size;
     await item.save();
     await item.populate('productId');
 

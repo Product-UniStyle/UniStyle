@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Minus, Plus, X, ShoppingBag, Heart, Lock, ChevronLeft } from 'lucide-react';
+import { Minus, Plus, X, ShoppingBag, Heart, Lock, ChevronLeft, ChevronDown } from 'lucide-react';
 import { useCart, type CartItem } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { useProducts } from '@/hooks/useProducts';
@@ -42,6 +42,51 @@ function MoveFromBagModal({ item, onClose, onRemove, onMoveToWishlist }: {
           >
             Move to Wishlist
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SizeModal({ item, onClose, onSelect }: {
+  item: CartItem;
+  onClose: () => void;
+  onSelect: (size: string) => void;
+}) {
+  const sizes = item.product.sizes || [];
+  const itemPrice = item.product.salePrice || item.product.price;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/40" />
+      <div
+        className="relative w-full max-w-[420px] bg-white shadow-xl p-6"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-start gap-4 mb-6">
+          <img src={item.product.images[0]} alt={item.product.name} className="w-14 h-14 object-cover bg-[#F5F5F5] shrink-0" />
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-bold text-[#1A1A1A] leading-snug">{item.product.name}</h3>
+            <p className="text-sm font-semibold mt-1">${itemPrice.toFixed(2)}</p>
+          </div>
+          <button onClick={onClose} className="text-[#1A1A1A] hover:text-[#666] transition-colors shrink-0" aria-label="Close">
+            <X size={18} />
+          </button>
+        </div>
+
+        <h4 className="text-xs font-semibold uppercase tracking-wider text-[#666] mb-3">Select Size</h4>
+        <div className="grid grid-cols-4 gap-3">
+          {sizes.map(size => (
+            <button
+              key={size}
+              onClick={() => onSelect(size)}
+              className={`h-11 flex items-center justify-center rounded-full border text-sm font-semibold transition-colors ${
+                item.size === size ? 'border-[#E4007C] text-[#E4007C]' : 'border-[#E5E5E5] text-[#1A1A1A] hover:border-[#1A1A1A]'
+              }`}
+            >
+              {size}
+            </button>
+          ))}
         </div>
       </div>
     </div>
@@ -113,10 +158,11 @@ function YouMayAlsoLike() {
 }
 
 export function CartPage() {
-  const { items, removeFromCart, updateQuantity, subtotal } = useCart();
+  const { items, removeFromCart, updateQuantity, updateSize, subtotal } = useCart();
   const { addToWishlist } = useWishlist();
   const navigate = useNavigate();
   const [itemToRemove, setItemToRemove] = useState<CartItem | null>(null);
+  const [sizeModalItem, setSizeModalItem] = useState<CartItem | null>(null);
 
   if (items.length === 0) {
     return (
@@ -203,9 +249,10 @@ export function CartPage() {
           {/* Cart Items */}
           <div className="flex-1 min-w-0">
             {/* Table header */}
-            <div className="hidden md:grid md:grid-cols-[2fr_1fr_1fr_1fr_40px] pb-3 mb-2 border-b border-[#E5E5E5] text-xs font-medium uppercase tracking-wider text-[#999]">
+            <div className="hidden md:grid md:grid-cols-[2fr_1fr_1fr_1fr_1fr_40px] pb-3 mb-2 border-b border-[#E5E5E5] text-xs font-medium uppercase tracking-wider text-[#999]">
               <span>Product</span>
               <span>Price</span>
+              <span>Size</span>
               <span>Quantity</span>
               <span>Total</span>
               <span></span>
@@ -215,9 +262,9 @@ export function CartPage() {
             <div className="divide-y divide-[#E5E5E5]">
               {items.map(item => {
                 const itemPrice = item.product.salePrice || item.product.price;
-                const meta = [item.color, item.size ? `Size ${item.size}` : null].filter(Boolean).join(' • ');
+                const hasSizes = (item.product.sizes?.length ?? 0) > 0;
                 return (
-                  <div key={item.id} className="flex flex-col md:grid md:grid-cols-[2fr_1fr_1fr_1fr_40px] items-start md:items-center gap-4 py-5">
+                  <div key={item.id} className="flex flex-col md:grid md:grid-cols-[2fr_1fr_1fr_1fr_1fr_40px] items-start md:items-center gap-4 py-5">
                     {/* Product info */}
                     <div className="flex items-center gap-4">
                       <Link to={`/product/${item.product.slug}`} className="w-[72px] h-[72px] bg-[#F5F5F5] shrink-0 overflow-hidden">
@@ -227,7 +274,7 @@ export function CartPage() {
                         <Link to={`/product/${item.product.slug}`} className="text-sm font-semibold text-[#1A1A1A] hover:underline leading-snug">
                           {item.product.name}
                         </Link>
-                        {meta && <p className="text-xs text-[#999] mt-1">{meta}</p>}
+                        {item.color && <p className="text-xs text-[#999] mt-1">{item.color}</p>}
                         <p className="text-xs text-[#999] mt-0.5 md:hidden">${itemPrice.toFixed(2)}</p>
                       </div>
                     </div>
@@ -235,8 +282,21 @@ export function CartPage() {
                     {/* Price */}
                     <div className="hidden md:block text-sm text-[#1A1A1A]">${itemPrice.toFixed(2)}</div>
 
+                    {/* Size */}
+                    <div>
+                      {hasSizes && (
+                        <button
+                          type="button"
+                          onClick={() => setSizeModalItem(item)}
+                          className="flex items-center gap-1 text-xs font-medium text-[#1A1A1A] hover:underline"
+                        >
+                          Size: {item.size || 'Select'} <ChevronDown size={12} />
+                        </button>
+                      )}
+                    </div>
+
                     {/* Quantity stepper */}
-                    <div className="flex items-center border border-[#E5E5E5]">
+                    <div className="inline-flex items-center border border-[#E5E5E5] w-fit">
                       <button
                         onClick={() => updateQuantity(item.id, item.quantity - 1)}
                         className="w-9 h-9 flex items-center justify-center hover:bg-[#F5F5F5] transition-colors"
@@ -336,6 +396,18 @@ export function CartPage() {
             removeFromCart(itemToRemove.id);
             showToast('Moved to wishlist');
             setItemToRemove(null);
+          }}
+        />
+      )}
+
+      {sizeModalItem && (
+        <SizeModal
+          item={sizeModalItem}
+          onClose={() => setSizeModalItem(null)}
+          onSelect={(size) => {
+            updateSize(sizeModalItem.id, size);
+            showToast('Size updated');
+            setSizeModalItem(null);
           }}
         />
       )}

@@ -140,8 +140,8 @@ export const api = {
   addToCart: (data: { productId: string; quantity?: number; size?: string; color?: string }) =>
     request<{ item: BackendCartItem }>('/cart', { method: 'POST', body: JSON.stringify(data) }),
 
-  updateCartItem: (itemId: string, quantity: number) =>
-    request<{ item: BackendCartItem }>(`/cart/${itemId}`, { method: 'PATCH', body: JSON.stringify({ quantity }) }),
+  updateCartItem: (itemId: string, data: { quantity?: number; size?: string }) =>
+    request<{ item: BackendCartItem }>(`/cart/${itemId}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
   removeCartItem: (itemId: string) => request<void>(`/cart/${itemId}`, { method: 'DELETE' }),
 

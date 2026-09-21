@@ -3,9 +3,7 @@ import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import { X, Filter, Grid3X3, LayoutGrid, LayoutList, ChevronDown, ChevronRight, Search } from 'lucide-react';
 import type { Product, ProductColor } from '@/data/products';
 import { useProducts } from '@/hooks/useProducts';
-import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
-import { showToast } from '@/components/ToastContainer';
 import gsap from 'gsap';
 
 const sortOptions = [
@@ -38,7 +36,6 @@ function getPageList(current: number, total: number): (number | '...')[] {
 }
 
 function ProductCard({ product, color }: { product: Product; color?: ProductColor }) {
-  const { addToCart } = useCart();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const inWishlist = isInWishlist(product.id);
   const hasCountdown = !!product.countdownEnd;
@@ -121,21 +118,16 @@ function ProductCard({ product, color }: { product: Product; color?: ProductColo
             <span className="border border-white/30 px-1.5 py-0.5">{String(countdown.secs).padStart(2, '0')}s</span>
           </div>
         )}
-        <div className="absolute bottom-0 left-0 right-0 p-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 duration-300">
-          <button
-            onClick={() => { addToCart(product, color?.name); showToast('Added to cart'); }}
-            className="flex-1 bg-[#1A1A1A] text-white text-[11px] font-semibold uppercase tracking-wider py-2.5 hover:bg-[#333] transition-colors"
-          >
-            Add to Cart
-          </button>
+        <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 duration-300">
           <button
             onClick={() => {
               if (inWishlist) removeFromWishlist(product.id);
               else addToWishlist(product);
             }}
-            className={`w-10 flex items-center justify-center border ${inWishlist ? 'bg-[#1A1A1A] text-white' : 'bg-white text-[#1A1A1A]'} transition-colors`}
+            className={`w-full flex items-center justify-center gap-2 text-[11px] font-semibold uppercase tracking-wider py-2.5 border border-[#1A1A1A] transition-colors ${inWishlist ? 'bg-[#1A1A1A] text-white hover:bg-[#333]' : 'bg-white text-[#1A1A1A] hover:bg-[#F5F5F5]'}`}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill={inWishlist ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill={inWishlist ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            {inWishlist ? 'Wishlisted' : 'Wishlist'}
           </button>
         </div>
       </div>

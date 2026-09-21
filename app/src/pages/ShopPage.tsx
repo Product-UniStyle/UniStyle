@@ -140,15 +140,15 @@ function ProductCard({ product, color }: { product: Product; color?: ProductColo
         </div>
       </div>
       <div className="mt-3">
-        <Link to={linkTo} className="text-sm font-medium text-[#1A1A1A] hover:underline">{product.name}</Link>
+        <Link to={linkTo} title={product.name} className="block truncate text-sm font-semibold text-[#1A1A1A] hover:underline">{product.name}</Link>
         <div className="flex items-center gap-2 mt-1">
           {product.salePrice ? (
             <>
-              <span className="text-sm font-semibold text-[#DC2626]">AED {product.salePrice.toFixed(2)}</span>
-              <span className="text-sm text-[#999] line-through">AED {product.price.toFixed(2)}</span>
+              <span className="text-[13px] font-normal text-[#DC2626]">AED {product.salePrice.toFixed(2)}</span>
+              <span className="text-[13px] text-[#999] line-through">AED {product.price.toFixed(2)}</span>
             </>
           ) : (
-            <span className="text-sm font-semibold">AED {product.price.toFixed(2)}</span>
+            <span className="text-[13px] font-normal">AED {product.price.toFixed(2)}</span>
           )}
         </div>
       </div>

@@ -201,8 +201,11 @@ export function ProductPage() {
   const completeCollection = product
     ? allProducts.filter(p => p.id !== product.id && p.institution && p.institution === product.institution).slice(0, 8)
     : [];
-  const youMayAlsoLike = product
-    ? allProducts.filter(p => p.id !== product.id).slice(0, 4)
+  // Same product type (e.g. bottles) from other institutions.
+  const similarProducts = product
+    ? allProducts
+        .filter(p => p.id !== product.id && p.category === product.category && p.institution !== product.institution)
+        .slice(0, 8)
     : [];
 
   useEffect(() => {
@@ -633,9 +636,9 @@ export function ProductPage() {
         <CollectionRow title="Complete the Collection" products={completeCollection} />
       </div>
 
-      {/* You May Also Like */}
+      {/* Other Similar Products */}
       <div className="pt-12">
-        <CollectionRow title="You May Also Like" products={youMayAlsoLike} />
+        <CollectionRow title="Other Similar Products" products={similarProducts} />
       </div>
 
       {/* Zoom Modal */}

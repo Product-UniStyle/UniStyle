@@ -234,7 +234,7 @@ export function ShopPage() {
     });
   };
 
-  const PAGE_SIZE = 100;
+  const PAGE_SIZE = 24;
   const [page, setPage] = useState<number>(() => {
     try {
       const saved = sessionStorage.getItem(scrollStateKey);

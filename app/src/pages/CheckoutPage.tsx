@@ -216,6 +216,22 @@ export function CheckoutPage() {
                 >
                   {processing ? 'Processing...' : `Place Order — AED ${total.toFixed(2)}`}
                 </button>
+
+                <div className="grid grid-cols-4 gap-2 mt-5 w-full">
+                  <div className="h-11 flex items-center justify-center gap-1.5 border border-[#E5E5E5] rounded-sm text-[#666]">
+                    <Lock size={14} />
+                    <span className="text-[10px] font-semibold leading-tight">256-bit<br />SSL</span>
+                  </div>
+                  {[
+                    { src: '/payment/visa.svg', alt: 'Visa' },
+                    { src: '/payment/mastercard.svg', alt: 'Mastercard' },
+                    { src: '/payment/amex.svg', alt: 'American Express' },
+                  ].map(b => (
+                    <div key={b.alt} className="h-11 p-1.5 flex items-center justify-center border border-[#E5E5E5] rounded-sm overflow-hidden">
+                      <img src={b.src} alt={b.alt} className="h-full w-full object-contain rounded-[2px]" />
+                    </div>
+                  ))}
+                </div>
               </div>
         </div>
       </div>

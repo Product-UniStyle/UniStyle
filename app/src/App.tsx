@@ -17,6 +17,8 @@ import { CartPage } from '@/pages/CartPage';
 import { WishlistPage } from '@/pages/WishlistPage';
 import { AccountPage } from '@/pages/AccountPage';
 import { CheckoutPage } from '@/pages/CheckoutPage';
+import { FaqPage } from '@/pages/FaqPage';
+import { PrivacyPolicyPage, TermsPage } from '@/pages/LegalPage';
 import { AdminLoginPage } from '@/pages/admin/AdminLoginPage';
 import { AdminPage } from '@/pages/admin/AdminPage';
 
@@ -38,6 +40,9 @@ function AppLayout() {
           <Route path="/wishlist" element={<WishlistPage />} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/faqs" element={<FaqPage />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms-and-conditions" element={<TermsPage />} />
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/admin" element={<AdminPage />} />
         </Routes>

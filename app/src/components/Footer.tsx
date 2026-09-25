@@ -64,7 +64,7 @@ export function Footer() {
               <li><Link to="/account" className="text-sm text-[#999] hover:text-white transition-colors">Contact</Link></li>
               <li><Link to="/account" className="text-sm text-[#999] hover:text-white transition-colors">Shipping</Link></li>
               <li><Link to="/account" className="text-sm text-[#999] hover:text-white transition-colors">Returns</Link></li>
-              <li><Link to="/account" className="text-sm text-[#999] hover:text-white transition-colors">FAQs</Link></li>
+              <li><Link to="/faqs" className="text-sm text-[#999] hover:text-white transition-colors">FAQs</Link></li>
             </ul>
           </div>
 
@@ -74,8 +74,8 @@ export function Footer() {
             <ul className="space-y-4">
               <li><Link to="/account" className="text-sm text-[#999] hover:text-white transition-colors">About</Link></li>
               <li><Link to="/account" className="text-sm text-[#999] hover:text-white transition-colors">Careers</Link></li>
-              <li><Link to="/account" className="text-sm text-[#999] hover:text-white transition-colors">Privacy Policy</Link></li>
-              <li><Link to="/account" className="text-sm text-[#999] hover:text-white transition-colors">Terms</Link></li>
+              <li><Link to="/privacy-policy" className="text-sm text-[#999] hover:text-white transition-colors">Privacy Policy</Link></li>
+              <li><Link to="/terms-and-conditions" className="text-sm text-[#999] hover:text-white transition-colors">Terms</Link></li>
             </ul>
           </div>
         </div>

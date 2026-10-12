@@ -311,7 +311,7 @@ export function AccountPage() {
                           <span className={`text-xs font-medium px-2.5 py-1 rounded-full shrink-0 ${STATUS_STYLES[order.status]}`}>
                             {statusLabel(order.status)}
                           </span>
-                          <p className="text-sm font-bold w-20 text-right shrink-0">${order.total.toFixed(2)}</p>
+                          <p className="text-sm font-bold w-20 text-right shrink-0">AED {order.total.toFixed(2)}</p>
                           <ChevronRight size={16} className="text-[#999] shrink-0" />
                         </button>
                       ))}

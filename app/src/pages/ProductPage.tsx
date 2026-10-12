@@ -201,6 +201,14 @@ export function ProductPage() {
   const completeCollection = product
     ? allProducts.filter(p => p.id !== product.id && p.institution && p.institution === product.institution).slice(0, 8)
     : [];
+
+  // Breadcrumb labels derived from real product data.
+  const topLevelLabel = product?.isAccessory ? 'Accessories' : 'Clothing';
+  const genderLabel = (() => {
+    if (!product?.gender || product.gender.length !== 1) return null;
+    const isSchool = product.institutionType === 'school';
+    return product.gender[0] === 'men' ? (isSchool ? "Boys'" : "Men's") : (isSchool ? "Girls'" : "Women's");
+  })();
   // Same product type (e.g. bottles) from other institutions.
   const similarProducts = product
     ? allProducts
@@ -295,18 +303,37 @@ export function ProductPage() {
 
   return (
     <div className="mt-[72px]" ref={sectionRef}>
-      {/* Breadcrumb */}
+      {/* Breadcrumb — Home / top-level / gender clothing / category / product name,
+          built from real product data (isAccessory, gender, category), matching
+          the depth of a typical marketplace breadcrumb instead of just Home/Institution/Category. */}
       <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-4">
         <nav className="text-sm text-[#666]">
           <Link to="/" className="hover:underline">Home</Link>
-          {product.institution && (
+          <span className="mx-2">/</span>
+          <Link to="/shop" className="hover:underline">{topLevelLabel}</Link>
+          {genderLabel && (
             <>
               <span className="mx-2">/</span>
-              <Link to={`/shop?institution=${encodeURIComponent(product.institution)}`} className="hover:underline">{product.institution}</Link>
+              <Link to={`/shop?gender=${product.gender![0]}`} className="hover:underline">{genderLabel} {topLevelLabel}</Link>
             </>
           )}
           <span className="mx-2">/</span>
           <Link to={`/shop?category=${encodeURIComponent(product.category)}`} className="hover:underline">{product.category}</Link>
+          <span className="mx-2">/</span>
+          <span className="text-[#1A1A1A] font-medium">
+            {product.institution ? `${product.institution} ${product.category}` : product.name}
+          </span>
+          {product.institution && (
+            <>
+              <span className="mx-2 text-[#1A1A1A]">&gt;</span>
+              <Link
+                to={`/shop?institution=${encodeURIComponent(product.institution)}`}
+                className="text-[#1A1A1A] font-medium hover:underline"
+              >
+                More By {product.institution}
+              </Link>
+            </>
+          )}
         </nav>
       </div>
 

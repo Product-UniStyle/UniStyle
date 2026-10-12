@@ -309,6 +309,17 @@ export function ShopPage() {
     return [...ordered, ...rest];
   }, [otherCategories]);
 
+  // Default ("Most relevant") product order: category first — Hoodie, Sweatshirt,
+  // T-Shirt, Bottoms, Caps, then anything else — and university alphabetically
+  // within each category, instead of leaving products in raw database order.
+  const categoryRank = useMemo(() => {
+    const ordered = CLOTHING_ORDER.filter(c => categories.includes(c));
+    const rest = categories.filter(c => !CLOTHING_ORDER.includes(c));
+    const map = new Map<string, number>();
+    [...ordered, ...rest].forEach((c, i) => map.set(c, i));
+    return map;
+  }, [categories]);
+
   const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
   const allSizes = useMemo(() => {
     const found = new Set<string>();
@@ -328,17 +339,22 @@ export function ShopPage() {
     [products]
   );
 
-  // Snap the price slider's upper bound down to the real catalog max the first
-  // time product data loads (the 9999 initial value is just a placeholder so
+  const minPrice = useMemo(
+    () => (products.length > 0 ? Math.floor(Math.min(...products.map(p => p.salePrice || p.price))) : 0),
+    [products]
+  );
+
+  // Snap the price slider's bounds to the real catalog min/max the first time
+  // product data loads (the [0, 9999] initial value is just a placeholder so
   // nothing gets filtered out while products are still loading). Only runs
   // once, so it never stomps a range the user has since dragged themselves.
   const priceInitializedRef = useRef(false);
   useEffect(() => {
     if (!priceInitializedRef.current && products.length > 0) {
       priceInitializedRef.current = true;
-      setPriceRange([0, maxPrice]);
+      setPriceRange([minPrice, maxPrice]);
     }
-  }, [products, maxPrice]);
+  }, [products, minPrice, maxPrice]);
 
   // Derived from real product data — not a hardcoded palette — so any color name
   // entered in the admin panel or a bulk-upload sheet shows up as a filter option.
@@ -378,6 +394,19 @@ export function ShopPage() {
   // Base pools for each filter group (all active filters EXCEPT that group)
   const genderBase = useMemo(() => applyFilters(products, { cats: selectedCategories, unis: selectedInstitutions, type: selectedType, colors: selectedColors, sizes: selectedSizes, avail: selectedAvailability, price: priceRange, discounts: selectedDiscounts }), [products, selectedCategories, selectedInstitutions, selectedType, selectedColors, selectedSizes, selectedAvailability, priceRange, selectedDiscounts]);
   const categoryBase = useMemo(() => applyFilters(products, { genders: selectedGenders, unis: selectedInstitutions, type: selectedType, colors: selectedColors, sizes: selectedSizes, avail: selectedAvailability, price: priceRange, discounts: selectedDiscounts }), [products, selectedGenders, selectedInstitutions, selectedType, selectedColors, selectedSizes, selectedAvailability, priceRange, selectedDiscounts]);
+
+  // Categories with zero matching products under the current filter context are
+  // dropped from the sidebar entirely instead of showing a dead "Blazer (0)" row.
+  const visibleClothingCategories = useMemo(
+    () => sortedClothingCategories.filter(cat => categoryBase.some(p => p.category === cat)),
+    [sortedClothingCategories, categoryBase]
+  );
+
+  const visibleAccessorySubcategories = useMemo(
+    () => accessorySubcategories.filter(cat => categoryBase.some(p => p.category === cat)),
+    [accessorySubcategories, categoryBase]
+  );
+
   const institutionBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, type: selectedType, colors: selectedColors, sizes: selectedSizes, avail: selectedAvailability, price: priceRange, discounts: selectedDiscounts }), [products, selectedGenders, selectedCategories, selectedType, selectedColors, selectedSizes, selectedAvailability, priceRange, selectedDiscounts]);
   const sizeBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, unis: selectedInstitutions, type: selectedType, colors: selectedColors, avail: selectedAvailability, price: priceRange, discounts: selectedDiscounts }), [products, selectedGenders, selectedCategories, selectedInstitutions, selectedType, selectedColors, selectedAvailability, priceRange, selectedDiscounts]);
   const availBase = useMemo(() => applyFilters(products, { genders: selectedGenders, cats: selectedCategories, unis: selectedInstitutions, type: selectedType, colors: selectedColors, sizes: selectedSizes, price: priceRange, discounts: selectedDiscounts }), [products, selectedGenders, selectedCategories, selectedInstitutions, selectedType, selectedColors, selectedSizes, priceRange, selectedDiscounts]);
@@ -409,6 +438,13 @@ export function ShopPage() {
       );
     }
     switch (sort) {
+      case 'relevant':
+        result.sort((a, b) => {
+          const catDiff = (categoryRank.get(a.category) ?? Infinity) - (categoryRank.get(b.category) ?? Infinity);
+          if (catDiff !== 0) return catDiff;
+          return (a.institution || '').localeCompare(b.institution || '');
+        });
+        break;
       case 'az': result.sort((a, b) => a.name.localeCompare(b.name)); break;
       case 'za': result.sort((a, b) => b.name.localeCompare(a.name)); break;
       case 'price-asc': result.sort((a, b) => (a.salePrice || a.price) - (b.salePrice || b.price)); break;
@@ -416,7 +452,7 @@ export function ShopPage() {
       default: break;
     }
     return result;
-  }, [products, selectedGenders, selectedCategories, selectedInstitutions, selectedType, selectedColors, selectedSizes, selectedAvailability, selectedDiscounts, priceRange, searchQuery, sort]);
+  }, [products, selectedGenders, selectedCategories, selectedInstitutions, selectedType, selectedColors, selectedSizes, selectedAvailability, selectedDiscounts, priceRange, searchQuery, sort, categoryRank]);
 
   // One grid tile per color variant (so a 3-color product shows 3 tiles). When a
   // color filter is active, only the matching color variant(s) are shown per
@@ -495,7 +531,7 @@ export function ShopPage() {
   }, []);
 
   const clearFilters = () => {
-    setPriceRange([0, maxPrice]);
+    setPriceRange([minPrice, maxPrice]);
     setSearchQuery('');
     setSearchParams({}, { replace: true });
   };
@@ -654,7 +690,7 @@ export function ShopPage() {
                 <div className="mb-6">
                   <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Categories</h4>
                   <div className="space-y-2">
-                    {(expandedFilters.has('categories') ? sortedClothingCategories : sortedClothingCategories.slice(0, FILTER_LIMIT)).map(cat => {
+                    {(expandedFilters.has('categories') ? visibleClothingCategories : visibleClothingCategories.slice(0, FILTER_LIMIT)).map(cat => {
                       const count = categoryBase.filter(p => p.category === cat).length;
                       const label = CATEGORY_LABELS[cat] || cat;
                       return (
@@ -664,16 +700,16 @@ export function ShopPage() {
                         </label>
                       );
                     })}
-                    {sortedClothingCategories.length > FILTER_LIMIT && (
+                    {visibleClothingCategories.length > FILTER_LIMIT && (
                       <button
                         type="button"
                         onClick={() => toggleExpanded('categories')}
                         className="text-xs font-medium text-[#DC2626] hover:underline transition-colors"
                       >
-                        {expandedFilters.has('categories') ? 'Show less' : `+ ${sortedClothingCategories.length - FILTER_LIMIT} more`}
+                        {expandedFilters.has('categories') ? 'Show less' : `+ ${visibleClothingCategories.length - FILTER_LIMIT} more`}
                       </button>
                     )}
-                    {accessorySubcategories.length > 0 && (
+                    {visibleAccessorySubcategories.length > 0 && (
                       <div>
                         <div className="flex items-center justify-between w-full text-sm text-[#666]">
                           <label className="flex items-center gap-2 cursor-pointer hover:text-[#1A1A1A]">
@@ -681,16 +717,16 @@ export function ShopPage() {
                               type="checkbox"
                               ref={el => {
                                 if (el) {
-                                  const selectedCount = accessorySubcategories.filter(c => selectedCategories.includes(c)).length;
-                                  el.indeterminate = selectedCount > 0 && selectedCount < accessorySubcategories.length;
+                                  const selectedCount = visibleAccessorySubcategories.filter(c => selectedCategories.includes(c)).length;
+                                  el.indeterminate = selectedCount > 0 && selectedCount < visibleAccessorySubcategories.length;
                                 }
                               }}
-                              checked={accessorySubcategories.every(c => selectedCategories.includes(c))}
+                              checked={visibleAccessorySubcategories.every(c => selectedCategories.includes(c))}
                               onChange={() => {
-                                const allSelected = accessorySubcategories.every(c => selectedCategories.includes(c));
+                                const allSelected = visibleAccessorySubcategories.every(c => selectedCategories.includes(c));
                                 setParamList('category', allSelected
-                                  ? selectedCategories.filter(c => !accessorySubcategories.includes(c))
-                                  : Array.from(new Set([...selectedCategories, ...accessorySubcategories])));
+                                  ? selectedCategories.filter(c => !visibleAccessorySubcategories.includes(c))
+                                  : Array.from(new Set([...selectedCategories, ...visibleAccessorySubcategories])));
                               }}
                               className="accent-[#1A1A1A]"
                             />
@@ -706,7 +742,7 @@ export function ShopPage() {
                         </div>
                         {accessoriesOpen && (
                           <div className="mt-2 ml-4 space-y-2">
-                            {accessorySubcategories.map(cat => {
+                            {visibleAccessorySubcategories.map(cat => {
                               const count = categoryBase.filter(p => p.category === cat).length;
                               return (
                                 <label key={cat} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
@@ -753,13 +789,13 @@ export function ShopPage() {
                     <div
                       className="absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-[#1A1A1A]"
                       style={{
-                        left: `${(priceRange[0] / maxPrice) * 100}%`,
-                        right: `${100 - (Math.min(priceRange[1], maxPrice) / maxPrice) * 100}%`,
+                        left: `${((priceRange[0] - minPrice) / (maxPrice - minPrice || 1)) * 100}%`,
+                        right: `${100 - ((Math.min(priceRange[1], maxPrice) - minPrice) / (maxPrice - minPrice || 1)) * 100}%`,
                       }}
                     />
                     <input
                       type="range"
-                      min={0}
+                      min={minPrice}
                       max={maxPrice}
                       value={priceRange[0]}
                       onChange={e => setPriceRange([Math.min(parseInt(e.target.value), priceRange[1] - 1), priceRange[1]])}
@@ -768,7 +804,7 @@ export function ShopPage() {
                     />
                     <input
                       type="range"
-                      min={0}
+                      min={minPrice}
                       max={maxPrice}
                       value={Math.min(priceRange[1], maxPrice)}
                       onChange={e => setPriceRange([priceRange[0], Math.max(parseInt(e.target.value), priceRange[0] + 1)])}
@@ -834,13 +870,13 @@ export function ShopPage() {
                 </div>
 
                 {/* Show more */}
-                <button
+                {/* <button
                   type="button"
                   onClick={() => setShowMoreOpen(true)}
                   className="text-xs font-medium text-[#666] hover:text-[#1A1A1A] underline transition-colors mb-6"
                 >
                   Show more filters
-                </button>
+                </button> */}
             </>
           </aside>
 

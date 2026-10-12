@@ -132,7 +132,7 @@ export function OrdersTab({ orders }: { orders: Order[] }) {
                     <p className="text-xs text-[#666] mt-2 max-w-[180px]">{statusDetailLine(order)}</p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="font-bold">${order.total.toFixed(2)}</p>
+                    <p className="font-bold">AED {order.total.toFixed(2)}</p>
                     <ChevronRight size={16} className={`text-[#999] ml-auto mt-2 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
                   </div>
                 </button>

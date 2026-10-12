@@ -363,9 +363,9 @@ export function WishlistPage() {
                   <div className="mb-6">
                     <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Price</h4>
                     <div className="flex items-center gap-3 mb-3">
-                      <span className="text-xs text-[#666]">${priceRange[0]}</span>
+                      <span className="text-xs text-[#666]">AED {priceRange[0]}</span>
                       <span className="text-xs text-[#666]">-</span>
-                      <span className="text-xs text-[#666]">${priceRange[1]}</span>
+                      <span className="text-xs text-[#666]">AED {priceRange[1]}</span>
                     </div>
                     <input
                       type="range"

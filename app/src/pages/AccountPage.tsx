@@ -408,14 +408,14 @@ export function AccountPage() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-                      {highlightedWishlist.map(product => (
-                        <div key={product.id} className="group">
+                      {highlightedWishlist.map(({ product, color }) => (
+                        <div key={`${product.id}-${color ?? ''}`} className="group">
                           <div className="relative bg-[#F5F5F5] mb-2">
                             <Link to={`/product/${product.slug}`}>
                               <img src={product.images[0]} alt={product.name} className="w-full aspect-square object-cover" />
                             </Link>
                             <button
-                              onClick={() => { removeFromWishlist(product.id); showToast('Removed from wishlist'); }}
+                              onClick={() => { removeFromWishlist(product.id, color); showToast('Removed from wishlist'); }}
                               className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white flex items-center justify-center text-[#1A1A1A]"
                             >
                               <Heart size={14} fill="currentColor" />
@@ -445,14 +445,14 @@ export function AccountPage() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {wishlistItems.map(product => (
-                      <div key={product.id} className="group">
+                    {wishlistItems.map(({ product, color }) => (
+                      <div key={`${product.id}-${color ?? ''}`} className="group">
                         <div className="relative bg-[#F5F5F5] mb-2">
                           <Link to={`/product/${product.slug}`}>
                             <img src={product.images[0]} alt={product.name} className="w-full aspect-square object-cover" />
                           </Link>
                           <button
-                            onClick={() => { removeFromWishlist(product.id); showToast('Removed from wishlist'); }}
+                            onClick={() => { removeFromWishlist(product.id, color); showToast('Removed from wishlist'); }}
                             className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white flex items-center justify-center text-[#1A1A1A]"
                           >
                             <Heart size={14} fill="currentColor" />

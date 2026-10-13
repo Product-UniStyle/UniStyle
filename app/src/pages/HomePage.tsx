@@ -98,10 +98,10 @@ function FeaturedProductsSection() {
             {active && (
               <div className="absolute bottom-10 left-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
                 <button
-                  onClick={() => { addToCart(active); showToast('Added to cart'); }}
+                  onClick={() => { addToCart(active); showToast('Added to bag'); }}
                   className="flex-1 bg-[#1A1A1A] text-white text-[11px] font-semibold uppercase tracking-wider py-2.5 hover:bg-[#333] transition-colors"
                 >
-                  Add to Cart
+                  Add to Bag
                 </button>
                 <button
                   onClick={() => {
@@ -150,10 +150,10 @@ function ProductTile({ product }: { product: Product }) {
         </Link>
         <div className="absolute bottom-0 left-0 right-0 p-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0 duration-300">
           <button
-            onClick={() => { addToCart(product); showToast('Added to cart'); }}
+            onClick={() => { addToCart(product); showToast('Added to bag'); }}
             className="flex-1 bg-[#1A1A1A] text-white text-[11px] font-semibold uppercase tracking-wider py-2.5 hover:bg-[#333] transition-colors"
           >
-            Add to Cart
+            Add to Bag
           </button>
           <button
             onClick={() => {

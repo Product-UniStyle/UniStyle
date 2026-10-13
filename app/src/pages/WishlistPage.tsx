@@ -1,9 +1,8 @@
 import { useMemo, useState, useRef } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { Heart, ShoppingBag, Trash2, ChevronDown, Filter, ChevronRight, X } from 'lucide-react';
+import { Heart, ShoppingBag, Trash2, ChevronDown, Filter, X } from 'lucide-react';
 import type { Product } from '@/data/products';
-import { useProducts } from '@/hooks/useProducts';
-import { useWishlist } from '@/context/WishlistContext';
+import { useWishlist, type WishlistEntry } from '@/context/WishlistContext';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { showToast } from '@/components/ToastContainer';
@@ -16,22 +15,25 @@ const sortOptions = [
   { label: 'Price, high to low', value: 'price-desc' },
 ];
 
-function WishlistCard({ product }: { product: Product }) {
+function WishlistCard({ product, color }: { product: Product; color: string | null }) {
   const { removeFromWishlist } = useWishlist();
   const { addToCart } = useCart();
+  const colorVariant = color ? product.colors?.find(c => c.name === color) : undefined;
+  const image = (colorVariant?.images?.[0]) || product.images[0];
+  const linkTo = `/product/${product.slug}${color ? `?color=${encodeURIComponent(color)}` : ''}`;
 
   return (
     <div className="group">
       <div className="relative bg-[#F5F5F5] overflow-hidden">
-        <Link to={`/product/${product.slug}`}>
+        <Link to={linkTo}>
           <img
-            src={product.images[0]}
+            src={image}
             alt={product.name}
             className="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-500"
           />
         </Link>
         <button
-          onClick={() => removeFromWishlist(product.id)}
+          onClick={() => removeFromWishlist(product.id, color)}
           className="absolute top-3 right-3 w-8 h-8 bg-white/90 flex items-center justify-center text-[#1A1A1A] hover:text-[#DC2626] transition-colors"
           aria-label="Remove from wishlist"
         >
@@ -39,84 +41,17 @@ function WishlistCard({ product }: { product: Product }) {
         </button>
         <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 duration-300">
           <button
-            onClick={() => { addToCart(product); showToast('Added to cart'); }}
+            onClick={() => { addToCart(product, color ?? undefined); showToast('Added to bag'); }}
             className="w-full bg-[#1A1A1A] text-white text-[11px] font-semibold uppercase tracking-wider py-2.5 hover:bg-[#333] transition-colors"
           >
-            Add to Cart
+            Add to Bag
           </button>
         </div>
       </div>
       <div className="mt-3">
         {product.institution && <p className="text-xs text-[#999]">{product.institution}</p>}
-        <Link to={`/product/${product.slug}`} className="text-sm font-medium text-[#1A1A1A] hover:underline">{product.name}</Link>
-        <div className="flex items-center gap-2 mt-1">
-          {product.salePrice ? (
-            <>
-              <span className="text-sm font-semibold text-[#DC2626]">AED {product.salePrice.toFixed(2)}</span>
-              <span className="text-sm text-[#999] line-through">AED {product.price.toFixed(2)}</span>
-            </>
-          ) : (
-            <span className="text-sm font-semibold">AED {product.price.toFixed(2)}</span>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function RecommendedCard({ product }: { product: Product }) {
-  const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
-  const inWishlist = isInWishlist(product.id);
-  const [imgIndex, setImgIndex] = useState(0);
-  const cycleRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  return (
-    <div className="group">
-      <div className="relative bg-[#F5F5F5] overflow-hidden">
-        <Link
-          to={`/product/${product.slug}`}
-          className="block relative aspect-square overflow-hidden"
-          onMouseEnter={() => {
-            if (product.images.length < 2) return;
-            cycleRef.current = setInterval(() => {
-              setImgIndex(prev => (prev + 1) % product.images.length);
-            }, 1200);
-          }}
-          onMouseLeave={() => {
-            if (cycleRef.current) clearInterval(cycleRef.current);
-            setImgIndex(0);
-          }}
-        >
-          {product.images.map((src, i) => (
-            <img
-              key={i}
-              src={src}
-              alt={product.name}
-              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${i === imgIndex ? 'opacity-100' : 'opacity-0'}`}
-            />
-          ))}
-          {product.images.length > 1 && (
-            <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              {product.images.map((_, i) => (
-                <span key={i} className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${i === imgIndex ? 'bg-white scale-125' : 'bg-white/50'}`} />
-              ))}
-            </div>
-          )}
-        </Link>
-        <button
-          onClick={() => {
-            if (inWishlist) removeFromWishlist(product.id);
-            else addToWishlist(product);
-          }}
-          className={`absolute top-3 right-3 w-8 h-8 bg-white/90 flex items-center justify-center transition-colors ${inWishlist ? 'text-[#1A1A1A]' : 'text-[#666] hover:text-[#1A1A1A]'}`}
-          aria-label="Toggle wishlist"
-        >
-          <Heart size={16} fill={inWishlist ? 'currentColor' : 'none'} />
-        </button>
-      </div>
-      <div className="mt-3">
-        {product.institution && <p className="text-xs text-[#999]">{product.institution}</p>}
-        <Link to={`/product/${product.slug}`} className="text-sm font-medium text-[#1A1A1A] hover:underline">{product.name}</Link>
+        <Link to={linkTo} className="text-sm font-medium text-[#1A1A1A] hover:underline">{product.name}</Link>
+        {color && <p className="text-xs text-[#666] mt-0.5">Color: {color}</p>}
         <div className="flex items-center gap-2 mt-1">
           {product.salePrice ? (
             <>
@@ -136,7 +71,6 @@ export function WishlistPage() {
   const { isAuthenticated } = useAuth();
   const { items, clearWishlist } = useWishlist();
   const { addToCart } = useCart();
-  const { products: allProducts } = useProducts();
 
   const [selectedGenders, setSelectedGenders] = useState<string[]>([]);
   const [selectedInstitutions, setSelectedInstitutions] = useState<string[]>([]);
@@ -148,30 +82,30 @@ export function WishlistPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const institutions = useMemo(
-    () => Array.from(new Set(items.map(p => p.institution).filter((u): u is string => !!u))).sort(),
+    () => Array.from(new Set(items.map(e => e.product.institution).filter((u): u is string => !!u))).sort(),
     [items]
   );
 
   const categories = useMemo(
-    () => Array.from(new Set(items.map(p => p.category).filter(Boolean))).sort(),
+    () => Array.from(new Set(items.map(e => e.product.category).filter(Boolean))).sort(),
     [items]
   );
 
   const maxPrice = useMemo(
-    () => Math.ceil(Math.max(...items.map(p => p.salePrice || p.price), 200)),
+    () => Math.ceil(Math.max(...items.map(e => e.product.salePrice || e.product.price), 200)),
     [items]
   );
 
   const applyFilters = (
-    source: Product[],
+    source: WishlistEntry[],
     opts: { genders?: string[]; unis?: string[]; cats?: string[]; avail?: string[]; price?: [number, number] }
   ) => {
     let r = source;
-    if (opts.genders?.length) r = r.filter(p => p.gender?.some(g => opts.genders!.includes(g)));
-    if (opts.unis?.length) r = r.filter(p => !!p.institution && opts.unis!.includes(p.institution));
-    if (opts.cats?.length) r = r.filter(p => opts.cats!.includes(p.category));
-    if (opts.avail?.length) r = r.filter(p => opts.avail!.includes(p.inStock ? 'in' : 'out'));
-    if (opts.price) r = r.filter(p => { const ep = p.salePrice || p.price; return ep >= opts.price![0] && ep <= opts.price![1]; });
+    if (opts.genders?.length) r = r.filter(e => e.product.gender?.some(g => opts.genders!.includes(g)));
+    if (opts.unis?.length) r = r.filter(e => !!e.product.institution && opts.unis!.includes(e.product.institution));
+    if (opts.cats?.length) r = r.filter(e => opts.cats!.includes(e.product.category));
+    if (opts.avail?.length) r = r.filter(e => opts.avail!.includes(e.product.inStock ? 'in' : 'out'));
+    if (opts.price) r = r.filter(e => { const ep = e.product.salePrice || e.product.price; return ep >= opts.price![0] && ep <= opts.price![1]; });
     return r;
   };
 
@@ -200,33 +134,28 @@ export function WishlistPage() {
 
   const filteredItems = useMemo(() => {
     let result = [...items];
-    if (selectedGenders.length) result = result.filter(p => p.gender?.some(g => selectedGenders.includes(g)));
-    if (selectedInstitutions.length) result = result.filter(p => !!p.institution && selectedInstitutions.includes(p.institution));
-    if (selectedCategories.length) result = result.filter(p => selectedCategories.includes(p.category));
+    if (selectedGenders.length) result = result.filter(e => e.product.gender?.some(g => selectedGenders.includes(g)));
+    if (selectedInstitutions.length) result = result.filter(e => !!e.product.institution && selectedInstitutions.includes(e.product.institution));
+    if (selectedCategories.length) result = result.filter(e => selectedCategories.includes(e.product.category));
     if (selectedAvailability.length) {
-      result = result.filter(p => selectedAvailability.includes(p.inStock ? 'in' : 'out'));
+      result = result.filter(e => selectedAvailability.includes(e.product.inStock ? 'in' : 'out'));
     }
-    result = result.filter(p => {
-      const effectivePrice = p.salePrice || p.price;
+    result = result.filter(e => {
+      const effectivePrice = e.product.salePrice || e.product.price;
       return effectivePrice >= priceRange[0] && effectivePrice <= priceRange[1];
     });
     switch (sort) {
-      case 'az': result.sort((a, b) => a.name.localeCompare(b.name)); break;
-      case 'za': result.sort((a, b) => b.name.localeCompare(a.name)); break;
-      case 'price-asc': result.sort((a, b) => (a.salePrice || a.price) - (b.salePrice || b.price)); break;
-      case 'price-desc': result.sort((a, b) => (b.salePrice || b.price) - (a.salePrice || a.price)); break;
+      case 'az': result.sort((a, b) => a.product.name.localeCompare(b.product.name)); break;
+      case 'za': result.sort((a, b) => b.product.name.localeCompare(a.product.name)); break;
+      case 'price-asc': result.sort((a, b) => (a.product.salePrice || a.product.price) - (b.product.salePrice || b.product.price)); break;
+      case 'price-desc': result.sort((a, b) => (b.product.salePrice || b.product.price) - (a.product.salePrice || a.product.price)); break;
       default: break;
     }
     return result;
   }, [items, selectedGenders, selectedInstitutions, selectedCategories, selectedAvailability, priceRange, sort]);
 
-  const recommended = useMemo(() => {
-    const wishlistIds = new Set(items.map(p => p.id));
-    return allProducts.filter(p => !wishlistIds.has(p.id)).slice(0, 8);
-  }, [allProducts, items]);
-
   const handleMoveAllToCart = () => {
-    items.forEach(p => addToCart(p));
+    items.forEach(e => addToCart(e.product, e.color ?? undefined));
     clearWishlist();
     showToast('Moved all items to cart');
   };
@@ -299,7 +228,7 @@ export function WishlistPage() {
                     <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Gender</h4>
                     <div className="space-y-2">
                       {(['men', 'women'] as const).map(gender => {
-                        const count = genderBase.filter(p => p.gender?.includes(gender)).length;
+                        const count = genderBase.filter(e => e.product.gender?.includes(gender)).length;
                         return (
                           <label key={gender} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
                             <input type="checkbox" checked={selectedGenders.includes(gender)} onChange={() => toggleGender(gender)} className="accent-[#1A1A1A]" />
@@ -316,7 +245,7 @@ export function WishlistPage() {
                       <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Institutions</h4>
                       <div className="space-y-2">
                         {institutions.map(uni => {
-                          const count = institutionBase.filter(p => p.institution === uni).length;
+                          const count = institutionBase.filter(e => e.product.institution === uni).length;
                           return (
                             <label key={uni} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
                               <input type="checkbox" checked={selectedInstitutions.includes(uni)} onChange={() => toggleInstitution(uni)} className="accent-[#1A1A1A]" />
@@ -333,7 +262,7 @@ export function WishlistPage() {
                     <h4 className="text-sm font-semibold uppercase tracking-wider mb-3">Categories</h4>
                     <div className="space-y-2">
                       {categories.map(cat => {
-                        const count = categoryBase.filter(p => p.category === cat).length;
+                        const count = categoryBase.filter(e => e.product.category === cat).length;
                         return (
                           <label key={cat} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
                             <input type="checkbox" checked={selectedCategories.includes(cat)} onChange={() => toggleCategory(cat)} className="accent-[#1A1A1A]" />
@@ -350,11 +279,11 @@ export function WishlistPage() {
                     <div className="space-y-2">
                       <label className="flex items-center gap-2 text-sm text-[#666] cursor-pointer">
                         <input type="checkbox" checked={selectedAvailability.includes('in')} onChange={() => setSelectedAvailability(prev => prev.includes('in') ? prev.filter(x => x !== 'in') : [...prev, 'in'])} className="accent-[#1A1A1A]" />
-                        In stock ({availBase.filter(p => p.inStock).length})
+                        In stock ({availBase.filter(e => e.product.inStock).length})
                       </label>
                       <label className="flex items-center gap-2 text-sm text-[#666] cursor-pointer">
                         <input type="checkbox" checked={selectedAvailability.includes('out')} onChange={() => setSelectedAvailability(prev => prev.includes('out') ? prev.filter(x => x !== 'out') : [...prev, 'out'])} className="accent-[#1A1A1A]" />
-                        Out of stock ({availBase.filter(p => !p.inStock).length})
+                        Out of stock ({availBase.filter(e => !e.product.inStock).length})
                       </label>
                     </div>
                   </div>
@@ -414,28 +343,12 @@ export function WishlistPage() {
               {/* Product Grid */}
               {filteredItems.length > 0 ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {filteredItems.map(p => <WishlistCard key={p.id} product={p} />)}
+                  {filteredItems.map(e => <WishlistCard key={`${e.product.id}-${e.color ?? ''}`} product={e.product} color={e.color} />)}
                 </div>
               ) : (
                 <div className="text-center py-20">
                   <p className="text-lg text-[#666] mb-4">No wishlist items match your filters.</p>
                   <button onClick={clearFilters} className="text-sm underline font-medium">Clear all filters</button>
-                </div>
-              )}
-
-              {/* You May Also Like */}
-              {recommended.length > 0 && (
-                <div className="mt-20 pt-12">
-                  <div className="flex items-center justify-between mb-8">
-                    <h2 className="font-playfair text-2xl md:text-3xl font-bold tracking-normal uppercase">You May Also Like</h2>
-                    <Link to="/shop" className="flex items-center gap-2 text-sm font-medium hover:underline">
-                      View All
-                      <ChevronRight size={16} />
-                    </Link>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    {recommended.map(p => <RecommendedCard key={p.id} product={p} />)}
-                  </div>
                 </div>
               )}
             </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Heart, HelpCircle, Truck, Share2, Check, Star, ChevronLeft, ChevronRight, ShoppingBag, Lock, RefreshCw, Link2, MessageCircle, Facebook, Instagram } from 'lucide-react';
+import { Heart, HelpCircle, Truck, Share2, Check, Star, ChevronLeft, ChevronRight, ShoppingBag, ArrowRight, Lock, RefreshCw, Link2, MessageCircle, Facebook, Instagram } from 'lucide-react';
 import { useProduct, useProducts } from '@/hooks/useProducts';
 import type { Product } from '@/data/products';
 import { api, type BackendReview } from '@/lib/api';
@@ -147,12 +147,12 @@ export function ProductPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { product, loading } = useProduct(slug);
-  const { addToCart } = useCart();
+  const { items: cartItems, addToCart } = useCart();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const sectionRef = useRef<HTMLDivElement>(null);
 
   const [selectedColor, setSelectedColor] = useState(product?.colors?.[0]?.name || '');
-  const [selectedSize, setSelectedSize] = useState(product?.sizes?.[0] || '');
+  const [selectedSize, setSelectedSize] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [mainImage, setMainImage] = useState(0);
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
@@ -221,7 +221,7 @@ export function ProductPage() {
       const colorFromUrl = searchParams.get('color');
       const matched = colorFromUrl && product.colors?.some(c => c.name === colorFromUrl);
       setSelectedColor(matched ? colorFromUrl! : (product.colors?.[0]?.name || ''));
-      setSelectedSize(product.sizes?.[0] || '');
+      setSelectedSize('');
       setMainImage(0);
       setQuantity(1);
     }
@@ -288,16 +288,28 @@ export function ProductPage() {
     );
   }
 
-  const inWishlist = isInWishlist(product.id);
+  const inWishlist = isInWishlist(product.id, product.colors?.length ? (selectedColor || null) : null);
+  // Mirrors addToCart's own matching key (CartContext.tsx) so this reflects
+  // whether the exact color/size combo currently selected is already in the
+  // bag — not just whether *something* was added at some point.
+  const isInBag = cartItems.some(item => item.product.id === product.id && item.color === selectedColor && item.size === selectedSize);
 
   const handleAddToCart = () => {
+    if (product.sizes?.length && !selectedSize) {
+      showToast('Please select a size');
+      return;
+    }
     addToCart(product, selectedColor, selectedSize, quantity);
-    showToast('Added to cart');
+    showToast('Added to bag');
   };
 
   const handleBuyNow = () => {
+    if (product.sizes?.length && !selectedSize) {
+      showToast('Please select a size');
+      return;
+    }
     addToCart(product, selectedColor, selectedSize, quantity);
-    showToast('Added to cart');
+    showToast('Added to bag');
     navigate('/checkout');
   };
 
@@ -390,13 +402,34 @@ export function ProductPage() {
 
           {/* Info */}
           <div className="product-info-col">
-            <div className="flex items-start justify-between gap-4 mb-3">
+            <div className="mb-3">
               <h1 className="font-playfair text-2xl md:text-3xl font-bold tracking-normal">{product.name}</h1>
-              <div className="flex items-center gap-3 text-[#666] shrink-0 pt-2">
+            </div>
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-center gap-3">
+                {product.salePrice ? (
+                  <>
+                    <span className="text-2xl font-bold text-[#DC2626]">AED {product.salePrice.toFixed(2)}</span>
+                    <span className="text-lg text-[#999] line-through">AED {product.price.toFixed(2)}</span>
+                  </>
+                ) : (
+                  <span className="text-2xl font-bold">AED {product.price.toFixed(2)}</span>
+                )}
+              </div>
+              <div className="flex items-center gap-3 text-[#666] shrink-0 pt-1">
+                {product.institution && (
+                  <Link
+                    to={`/shop?institution=${encodeURIComponent(product.institution)}`}
+                    className="text-sm font-medium text-[#1A1A1A] hover:underline whitespace-nowrap"
+                  >
+                    Visit {product.institution} Store
+                  </Link>
+                )}
                 <button
                   onClick={() => {
-                    if (inWishlist) removeFromWishlist(product.id);
-                    else addToWishlist(product);
+                    const color = product.colors?.length ? (selectedColor || null) : null;
+                    if (inWishlist) removeFromWishlist(product.id, color);
+                    else addToWishlist(product, color);
                   }}
                   className="hover:text-[#1A1A1A] transition-colors"
                   title={inWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
@@ -441,16 +474,6 @@ export function ProductPage() {
                   )}
                 </div>
               </div>
-            </div>
-            <div className="flex items-center gap-3 mb-4">
-              {product.salePrice ? (
-                <>
-                  <span className="text-2xl font-bold text-[#DC2626]">AED {product.salePrice.toFixed(2)}</span>
-                  <span className="text-lg text-[#999] line-through">AED {product.price.toFixed(2)}</span>
-                </>
-              ) : (
-                <span className="text-2xl font-bold">AED {product.price.toFixed(2)}</span>
-              )}
             </div>
             {/* Rating */}
             {reviews.length > 0 && (() => {
@@ -520,7 +543,7 @@ export function ProductPage() {
             {product.sizes && product.sizes.length > 0 && (
               <div className="mb-5">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium">Size: {selectedSize}</p>
+                  <p className="text-sm font-medium">Size: {selectedSize || 'Select a size'}</p>
                   <button className="text-xs underline text-[#666] flex items-center gap-1"><HelpCircle size={12} /> Size guide</button>
                 </div>
                 <div className="flex items-center gap-2">
@@ -537,12 +560,12 @@ export function ProductPage() {
               </div>
             )}
 
-            {/* Add to Cart */}
+            {/* Add to Bag */}
             <button
-              onClick={handleAddToCart}
+              onClick={isInBag ? () => navigate('/cart') : handleAddToCart}
               className="w-full flex items-center justify-center gap-2 bg-[#1A1A1A] text-white text-sm font-semibold uppercase tracking-wider py-3.5 hover:bg-[#333] transition-colors mb-3"
             >
-              <ShoppingBag size={16} /> Add to Cart
+              {isInBag ? <>Go to Bag <ArrowRight size={16} /></> : <><ShoppingBag size={16} /> Add to Bag</>}
             </button>
 
             {/* Buy Now */}

@@ -7,7 +7,7 @@ import { requireAuth } from '../middleware/auth.js';
 const router = Router();
 router.use(requireAuth);
 
-const addSchema = z.object({ productId: z.string().length(24) });
+const addSchema = z.object({ productId: z.string().length(24), color: z.string().optional() });
 
 // GET /api/wishlist
 router.get('/', async (req, res, next) => {
@@ -39,9 +39,10 @@ router.post('/', async (req, res, next) => {
     const product = await Product.findById(data.productId);
     if (!product) return res.status(404).json({ error: 'Product not found' });
 
+    const color = data.color || null;
     const item = await WishlistItem.findOneAndUpdate(
-      { userId: req.user.id, productId: data.productId },
-      { userId: req.user.id, productId: data.productId },
+      { userId: req.user.id, productId: data.productId, color },
+      { userId: req.user.id, productId: data.productId, color },
       { upsert: true, new: true }
     ).populate('productId');
 
@@ -51,13 +52,13 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-// DELETE /api/wishlist/:productId
+// DELETE /api/wishlist/:productId?color=...
+// Omitting ?color removes every color variant of the product (e.g. Clear Wishlist).
 router.delete('/:productId', async (req, res, next) => {
   try {
-    await WishlistItem.deleteMany({
-      userId: req.user.id,
-      productId: req.params.productId,
-    });
+    const filter = { userId: req.user.id, productId: req.params.productId };
+    if (req.query.color !== undefined) filter.color = req.query.color || null;
+    await WishlistItem.deleteMany(filter);
     res.status(204).send();
   } catch (err) {
     next(err);

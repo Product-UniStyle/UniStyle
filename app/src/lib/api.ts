@@ -152,10 +152,12 @@ export const api = {
   // ---- Wishlist ----
   getWishlist: () => request<{ items: BackendWishlistItem[] }>('/wishlist'),
 
-  addToWishlist: (productId: string) =>
-    request<{ item: BackendWishlistItem }>('/wishlist', { method: 'POST', body: JSON.stringify({ productId }) }),
+  addToWishlist: (productId: string, color?: string) =>
+    request<{ item: BackendWishlistItem }>('/wishlist', { method: 'POST', body: JSON.stringify({ productId, color }) }),
 
-  removeFromWishlist: (productId: string) => request<void>(`/wishlist/${productId}`, { method: 'DELETE' }),
+  // Omitting color removes every color variant of the product (e.g. Clear Wishlist).
+  removeFromWishlist: (productId: string, color?: string) =>
+    request<void>(`/wishlist/${productId}${color !== undefined ? `?color=${encodeURIComponent(color)}` : ''}`, { method: 'DELETE' }),
 
   // ---- Checkout / Orders ----
   createCheckoutSession: (data: { shippingAddress: BackendAddressInput; itemIds?: string[] }) =>
@@ -301,6 +303,7 @@ export interface BackendCartItem {
 export interface BackendWishlistItem {
   _id: string;
   productId: BackendProduct;
+  color?: string | null;
 }
 
 export interface BackendOrderItem {

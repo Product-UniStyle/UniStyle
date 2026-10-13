@@ -392,10 +392,10 @@ function YouMayAlsoLike() {
                 AED {(product.salePrice ?? product.price).toFixed(2)}
               </p>
               <button
-                onClick={() => { addToCart(product); showToast('Added to cart'); }}
+                onClick={() => { addToCart(product); showToast('Added to bag'); }}
                 className="w-full border border-[#1A1A1A] text-[#1A1A1A] text-[11px] font-semibold uppercase tracking-wider py-2.5 hover:bg-[#1A1A1A] hover:text-white transition-colors"
               >
-                Add to Cart
+                Add to Bag
               </button>
             </div>
           );
@@ -599,7 +599,7 @@ export function CartPage() {
                   </button>
                   <span className="w-px bg-[#E5E5E5]" />
                   <button
-                    onClick={() => selectedItems.forEach(item => { addToWishlist(item.product); removeFromCart(item.id); })}
+                    onClick={() => selectedItems.forEach(item => { addToWishlist(item.product, item.color ?? null); removeFromCart(item.id); })}
                     className="pl-4 text-[#666] hover:text-[#1A1A1A] transition-colors text-right leading-tight"
                   >
                     Move to<br />Wishlist
@@ -842,7 +842,7 @@ export function CartPage() {
             setItemToRemove(null);
           }}
           onMoveToWishlist={() => {
-            addToWishlist(itemToRemove.product);
+            addToWishlist(itemToRemove.product, itemToRemove.color ?? null);
             removeFromCart(itemToRemove.id);
             showToast('Moved to wishlist');
             setItemToRemove(null);

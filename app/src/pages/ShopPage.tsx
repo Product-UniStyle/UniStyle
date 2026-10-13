@@ -34,7 +34,7 @@ function getPageList(current: number, total: number): (number | '...')[] {
 
 function ProductCard({ product, color }: { product: Product; color?: ProductColor }) {
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
-  const inWishlist = isInWishlist(product.id);
+  const inWishlist = isInWishlist(product.id, color?.name ?? null);
   const hasCountdown = !!product.countdownEnd;
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
   const [imgIndex, setImgIndex] = useState(0);
@@ -118,8 +118,8 @@ function ProductCard({ product, color }: { product: Product; color?: ProductColo
         <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 duration-300">
           <button
             onClick={() => {
-              if (inWishlist) removeFromWishlist(product.id);
-              else addToWishlist(product);
+              if (inWishlist) removeFromWishlist(product.id, color?.name ?? null);
+              else addToWishlist(product, color?.name ?? null);
             }}
             className={`w-full flex items-center justify-center gap-2 text-[11px] font-semibold uppercase tracking-wider py-2.5 border border-[#1A1A1A] transition-colors ${inWishlist ? 'bg-[#1A1A1A] text-white hover:bg-[#333]' : 'bg-white text-[#1A1A1A] hover:bg-[#F5F5F5]'}`}
           >

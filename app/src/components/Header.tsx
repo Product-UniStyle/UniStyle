@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { User, Heart, ShoppingBag, Menu, ChevronDown } from 'lucide-react';
+import { User, Heart, ShoppingBag, Menu, ChevronDown, Check } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { api } from '@/lib/api';
@@ -197,7 +197,7 @@ export function Header() {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden lg:flex items-center gap-8">
+          <nav className="hidden lg:flex items-center gap-16">
             {navLinks.map((link, index) => (
               <div
                 key={link.label}
@@ -219,7 +219,7 @@ export function Header() {
 
                 {link.dropdown && activeDropdown === index && (
                   <div
-                    className="absolute top-full left-0 mt-2 min-w-[200px] z-50 rounded-2xl border border-white/50 overflow-hidden animate-liquid-glass-in"
+                    className="absolute top-full left-0 mt-2 w-max min-w-[200px] z-50 rounded-2xl border border-white/50 overflow-hidden animate-liquid-glass-in"
                     style={{
                       background: 'rgba(255,255,255,0.65)',
                       backdropFilter: 'blur(48px)',
@@ -229,15 +229,23 @@ export function Header() {
                   >
                     <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent pointer-events-none" />
                     <div className="py-2 max-h-[320px] overflow-y-auto">
-                      {link.dropdown.map((item) => (
-                        <Link
-                          key={item.label}
-                          to={item.href}
-                          className="block px-4 py-2 text-sm text-[#1A1A1A] hover:bg-white/50 transition-colors"
-                        >
-                          {item.label}
-                        </Link>
-                      ))}
+                      {link.dropdown.map((item) => {
+                        const isViewAll = item.label.startsWith('View All');
+                        return (
+                          <Link
+                            key={item.label}
+                            to={item.href}
+                            className={`group flex items-center gap-2 px-4 py-2 text-sm transition-colors whitespace-nowrap ${
+                              isViewAll
+                                ? 'font-semibold text-[#1A1A1A] border-b border-white/60 mb-1 pb-2.5 hover:bg-white/50'
+                                : 'text-[#1A1A1A] hover:bg-white/50'
+                            }`}
+                          >
+                            <Check size={14} className="shrink-0 text-[#2563EB] opacity-0 group-hover:opacity-100 transition-opacity" />
+                            {item.label}
+                          </Link>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

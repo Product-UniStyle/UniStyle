@@ -473,7 +473,10 @@ export function ShopPage() {
   }, [filteredProducts, selectedColors]);
 
   const totalPages = Math.max(1, Math.ceil(gridEntries.length / PAGE_SIZE));
-  const pagedEntries = gridEntries.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pagedEntries = useMemo(
+    () => gridEntries.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [gridEntries, page],
+  );
 
   // Jump back to page 1 whenever filters/sort change the result set, and clamp
   // down if the current page no longer exists (e.g. a filter shrinks the list).
@@ -595,7 +598,7 @@ export function ShopPage() {
       </div> */}
 
       <div ref={sectionRef} className="max-w-[1440px] mx-auto px-6 lg:px-12 py-12">
-        <div className="flex gap-8">
+        <div className="flex items-start gap-8">
           {/* Mobile backdrop */}
           {sidebarOpen && (
             <div className="fixed inset-0 z-30 bg-black/40 lg:hidden" onClick={() => setSidebarOpen(false)} />
@@ -625,7 +628,7 @@ export function ShopPage() {
                           <input type="checkbox" checked={selectedGenders.includes(gender)} onChange={() => toggleGender(gender)} className="accent-[#1A1A1A]" />
                           {selectedType === 'school'
                             ? gender === 'men' ? 'Boys' : 'Girls'
-                            : gender === 'men' ? 'Men' : 'Women'} ({count})
+                            : gender === 'men' ? 'Him' : 'Her'} ({count})
                         </label>
                       );
                     })}

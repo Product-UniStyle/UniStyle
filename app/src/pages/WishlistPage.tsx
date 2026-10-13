@@ -303,7 +303,7 @@ export function WishlistPage() {
                         return (
                           <label key={gender} className="flex items-center gap-2 text-sm text-[#666] cursor-pointer hover:text-[#1A1A1A]">
                             <input type="checkbox" checked={selectedGenders.includes(gender)} onChange={() => toggleGender(gender)} className="accent-[#1A1A1A]" />
-                            {gender === 'men' ? 'Men' : 'Women'} ({count})
+                            {gender === 'men' ? 'Him' : 'Her'} ({count})
                           </label>
                         );
                       })}

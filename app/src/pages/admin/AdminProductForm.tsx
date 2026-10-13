@@ -192,7 +192,7 @@ export function AdminProductForm({ initial, categories, onSubmit, onCancel }: Pr
           {(['men', 'women'] as const).map(g => (
             <label key={g} className="flex items-center gap-2 text-sm cursor-pointer">
               <Checkbox checked={gender.includes(g)} onCheckedChange={() => toggleGender(g)} />
-              {g === 'men' ? 'Men' : 'Women'}
+              {g === 'men' ? 'Him' : 'Her'}
             </label>
           ))}
         </div>

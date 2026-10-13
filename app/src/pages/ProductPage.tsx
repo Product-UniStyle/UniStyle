@@ -330,7 +330,7 @@ export function ProductPage() {
                 to={`/shop?institution=${encodeURIComponent(product.institution)}`}
                 className="text-[#1A1A1A] font-medium hover:underline"
               >
-                More By {product.institution}
+                Visit {product.institution} Store
               </Link>
             </>
           )}

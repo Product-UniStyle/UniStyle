@@ -7,12 +7,9 @@ import { useWishlist } from '@/context/WishlistContext';
 import gsap from 'gsap';
 
 const sortOptions = [
-  { label: 'Most relevant', value: 'relevant' },
-  { label: 'Best selling', value: 'bestselling' },
-  { label: 'Alphabetically, A-Z', value: 'az' },
-  { label: 'Alphabetically, Z-A', value: 'za' },
-  { label: 'Price, low to high', value: 'price-asc' },
-  { label: 'Price, high to low', value: 'price-desc' },
+  { label: 'Best Selling', value: 'bestselling' },
+  { label: 'Price: Low to High', value: 'price-asc' },
+  { label: 'Price: High to Low', value: 'price-desc' },
 ];
 
 const DISCOUNT_TIERS = [10, 20, 30, 40, 50, 60, 70, 80, 90];
@@ -132,15 +129,18 @@ function ProductCard({ product, color }: { product: Product; color?: ProductColo
         </div>
       </div>
       <div className="mt-3">
-        <Link to={linkTo} title={product.name} className="block truncate text-sm font-semibold text-[#1A1A1A] hover:underline">{product.name}</Link>
+        <Link to={linkTo} title={product.name} className="block truncate text-base font-semibold text-[#1A1A1A] hover:underline">{product.name}</Link>
+        {product.institution && (
+          <p className="truncate text-sm text-[#666] mt-0.5">{product.institution}</p>
+        )}
         <div className="flex items-center gap-2 mt-1">
           {product.salePrice ? (
             <>
-              <span className="text-[13px] font-normal text-[#DC2626]">AED {product.salePrice.toFixed(2)}</span>
-              <span className="text-[13px] text-[#999] line-through">AED {product.price.toFixed(2)}</span>
+              <span className="text-sm font-semibold text-[#DC2626]">AED {product.salePrice.toFixed(2)}</span>
+              <span className="text-sm text-[#999] line-through">AED {product.price.toFixed(2)}</span>
             </>
           ) : (
-            <span className="text-[13px] font-normal">AED {product.price.toFixed(2)}</span>
+            <span className="text-sm font-semibold">AED {product.price.toFixed(2)}</span>
           )}
         </div>
       </div>
@@ -213,7 +213,7 @@ export function ShopPage() {
   const selectedDiscounts = useMemo(() => getParamList('discount'), [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 9999]);
-  const [sort, setSort] = useState('relevant');
+  const [sort, setSort] = useState('bestselling');
   const [gridCols, setGridCols] = useState(4);
   const [sortOpen, setSortOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -309,7 +309,7 @@ export function ShopPage() {
     return [...ordered, ...rest];
   }, [otherCategories]);
 
-  // Default ("Most relevant") product order: category first — Hoodie, Sweatshirt,
+  // Default ("Best Selling") product order: category first — Hoodie, Sweatshirt,
   // T-Shirt, Bottoms, Caps, then anything else — and university alphabetically
   // within each category, instead of leaving products in raw database order.
   const categoryRank = useMemo(() => {
@@ -438,15 +438,13 @@ export function ShopPage() {
       );
     }
     switch (sort) {
-      case 'relevant':
+      case 'bestselling':
         result.sort((a, b) => {
           const catDiff = (categoryRank.get(a.category) ?? Infinity) - (categoryRank.get(b.category) ?? Infinity);
           if (catDiff !== 0) return catDiff;
           return (a.institution || '').localeCompare(b.institution || '');
         });
         break;
-      case 'az': result.sort((a, b) => a.name.localeCompare(b.name)); break;
-      case 'za': result.sort((a, b) => b.name.localeCompare(a.name)); break;
       case 'price-asc': result.sort((a, b) => (a.salePrice || a.price) - (b.salePrice || b.price)); break;
       case 'price-desc': result.sort((a, b) => (b.salePrice || b.price) - (a.salePrice || a.price)); break;
       default: break;
@@ -536,7 +534,7 @@ export function ShopPage() {
   const clearFilters = () => {
     setPriceRange([minPrice, maxPrice]);
     setSearchQuery('');
-    setSearchParams({}, { replace: true });
+    setSearchParams(selectedType ? { type: selectedType } : {}, { replace: true });
   };
 
   const toggleGender = (gender: string) => {
@@ -611,7 +609,7 @@ export function ShopPage() {
             </div>
             <div className="flex items-center  mb-6">
               <button onClick={clearFilters} className="text-xs font-medium text-[#666] hover:text-[#1A1A1A] underline transition-colors">
-                Reset
+                Clear Filter
               </button>
             </div>
 
@@ -942,7 +940,7 @@ export function ShopPage() {
                 </div>
                 <div className="relative">
                   <button onClick={() => setSortOpen(!sortOpen)} className="flex items-center gap-2 text-sm border border-[#E5E5E5] px-3 py-2 hover:border-[#1A1A1A] transition-colors">
-                    {sortOptions.find(o => o.value === sort)?.label || 'Sort'}
+                    Sort By
                     <ChevronDown size={14} />
                   </button>
                   {sortOpen && (

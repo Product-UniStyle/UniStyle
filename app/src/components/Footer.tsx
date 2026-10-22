@@ -43,7 +43,7 @@ export function Footer() {
           {/* Logo */}
           <div className="flex items-center">
             <Link to="/">
-              <img src="/Logo.png" alt="UniStyle" className="h-14 w-auto" />
+              <img src="/Logo.png" alt="UniStyle" className="h-14 w-auto rotate-[10deg]" />
             </Link>
           </div>
 

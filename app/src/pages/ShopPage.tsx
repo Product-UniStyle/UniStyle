@@ -621,7 +621,6 @@ export function ShopPage() {
       </div> */}
 
       <div ref={sectionRef} className="max-w-[1440px] mx-auto px-6 lg:px-12 py-12">
-        {selectedInstitutions.length === 1 && <InstitutionBanner name={selectedInstitutions[0]} />}
         <div className="flex items-start gap-8">
           {/* Mobile backdrop */}
           {sidebarOpen && (
@@ -937,6 +936,7 @@ export function ShopPage() {
           {/* Main */}
           <div className="flex-1 min-w-0">
             {/* Toolbar */}
+            {selectedInstitutions.length === 1 && <InstitutionBanner name={selectedInstitutions[0]} />}
             <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
               <div className="flex flex-wrap items-center gap-4">
                 <div className="flex items-center gap-2 bg-white border border-[#E5E5E5] rounded-md px-3 py-2 w-[260px] shrink-0">

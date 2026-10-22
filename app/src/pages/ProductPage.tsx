@@ -183,7 +183,7 @@ function CollectionCard({ product }: { product: Product }) {
   const cycleRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   return (
-    <div className="group shrink-0 w-[calc(50%-12px)] md:w-[calc(25%-18px)]">
+    <div className="group shrink-0 w-[calc(50%-12px)] md:w-[calc(20%-19.5px)]">
       <div className="relative bg-white overflow-hidden">
         <Link
           to={`/product/${product.slug}`}

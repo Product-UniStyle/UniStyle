@@ -1,7 +1,8 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Link, useSearchParams, useLocation } from 'react-router-dom';
-import { X, Filter, Grid3X3, LayoutGrid, LayoutList, ChevronDown, ChevronRight, Search } from 'lucide-react';
+import { X, Filter, Grid3X3, LayoutGrid, LayoutList, ChevronDown, ChevronRight, Search, GraduationCap } from 'lucide-react';
 import type { Product, ProductColor } from '@/data/products';
+import { getInstitutionLogo } from '@/data/institutions';
 import { useProducts } from '@/hooks/useProducts';
 import { useWishlist } from '@/context/WishlistContext';
 import gsap from 'gsap';
@@ -156,6 +157,30 @@ function ProductCardSkeleton() {
         <div className="h-3.5 w-3/4 bg-[#EDEDED]" />
         <div className="h-3.5 w-1/3 bg-[#EDEDED]" />
       </div>
+    </div>
+  );
+}
+
+function InstitutionBanner({ name }: { name: string }) {
+  const logo = getInstitutionLogo(name);
+  return (
+    <div className="relative mb-10 flex items-center justify-between gap-4 bg-[#1B2A6B] text-white px-6 md:px-10 py-6 overflow-hidden">
+      <div className="flex items-center gap-4 min-w-0">
+        {logo ? (
+          <img src={logo} alt={name} className="w-14 h-14 shrink-0 rounded-full bg-white object-contain p-1.5" />
+        ) : (
+          <div className="w-14 h-14 shrink-0 rounded-full bg-white/10 flex items-center justify-center">
+            <GraduationCap size={28} />
+          </div>
+        )}
+        <div className="min-w-0">
+          <p className="font-playfair text-2xl md:text-3xl tracking-wide truncate">{name}</p>
+          <p className="text-xs md:text-sm text-white/70 uppercase tracking-widest mt-1">Official Merchandise Collection</p>
+        </div>
+      </div>
+      <p className="hidden md:block shrink-0 text-xs font-medium uppercase tracking-widest text-white/90">
+        Shop All Products
+      </p>
     </div>
   );
 }
@@ -596,6 +621,7 @@ export function ShopPage() {
       </div> */}
 
       <div ref={sectionRef} className="max-w-[1440px] mx-auto px-6 lg:px-12 py-12">
+        {selectedInstitutions.length === 1 && <InstitutionBanner name={selectedInstitutions[0]} />}
         <div className="flex items-start gap-8">
           {/* Mobile backdrop */}
           {sidebarOpen && (

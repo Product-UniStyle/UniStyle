@@ -1,9 +1,143 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Heart, HelpCircle, Truck, Share2, Check, Star, ChevronLeft, ChevronRight, ShoppingBag, ArrowRight, Lock, RefreshCw, Link2, MessageCircle, Facebook, Instagram } from 'lucide-react';
+import { Heart, HelpCircle, Truck, Share2, Check, Star, ChevronLeft, ChevronRight, ShoppingBag, ArrowRight, Lock, RefreshCw, Link2, MessageCircle, Facebook, Instagram, X } from 'lucide-react';
 import { useProduct, useProducts } from '@/hooks/useProducts';
 import type { Product } from '@/data/products';
 import { api, type BackendReview } from '@/lib/api';
+import { getSizeChart } from '@/data/sizeCharts';
+
+function SizeGuideDrawer({ product, image, selectedSize, onSelect, onClose, inWishlist, onToggleWishlist, onAddToBag }: {
+  product: Product; image: string; selectedSize: string; onSelect: (size: string) => void; onClose: () => void;
+  inWishlist: boolean; onToggleWishlist: () => void; onAddToBag: () => void;
+}) {
+  const [tab, setTab] = useState<'chart' | 'measure'>('chart');
+  const [unit, setUnit] = useState<'in' | 'cm'>('in');
+  const chart = getSizeChart(product.category);
+  // Only the sizes this product actually offers — falls back to the full chart
+  // if none of its size labels match the generic chart rows (e.g. custom sizing).
+  const rows = product.sizes?.length ? chart.rows.filter(r => product.sizes!.includes(r.size)) : chart.rows;
+  const visibleRows = rows.length > 0 ? rows : chart.rows;
+  const toUnit = (inches: number) => unit === 'cm' ? Math.round(inches * 2.54 * 10) / 10 : inches;
+
+  return (
+    <div className="fixed inset-0 z-[70] flex justify-end bg-black/50" onClick={onClose}>
+      <div className="w-full md:w-1/2 bg-white h-full overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-6">
+          <button onClick={onClose} aria-label="Close" className="mb-4 text-[#666] hover:text-[#1A1A1A]"><X size={22} /></button>
+
+          <div className="flex items-center gap-4 mb-6">
+            <img src={image} alt={product.name} className="w-36 h-36 object-cover bg-[#F5F5F5] shrink-0" />
+            <div className="min-w-0">
+              <p className="font-semibold text-base">{product.name}</p>
+              {product.institution && <p className="text-sm text-[#666]">{product.institution}</p>}
+              <div className="flex items-center gap-2 mt-2">
+                {product.salePrice ? (
+                  <>
+                    <span className="text-sm font-semibold">AED {product.salePrice.toFixed(2)}</span>
+                    <span className="text-xs text-[#999] line-through">AED {product.price.toFixed(2)}</span>
+                  </>
+                ) : (
+                  <span className="text-sm font-semibold">AED {product.price.toFixed(2)}</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center border-b border-[#E5E5E5] mb-6">
+            {(['chart', 'measure'] as const).map(t => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`flex-1 text-center pb-3 text-base font-medium border-b-2 -mb-px transition-colors ${tab === t ? 'border-[#1A1A1A] text-[#1A1A1A]' : 'border-transparent text-[#999]'}`}
+              >
+                {t === 'chart' ? 'Size Chart' : 'How to measure'}
+              </button>
+            ))}
+          </div>
+
+          {tab === 'chart' ? (
+            <>
+              <div className="flex justify-end mb-3">
+                <div className="flex border border-[#E5E5E5] rounded-full overflow-hidden text-xs font-medium">
+                  {(['in', 'cm'] as const).map(u => (
+                    <button
+                      key={u}
+                      onClick={() => setUnit(u)}
+                      className={`px-3 py-1.5 ${unit === u ? 'bg-[#1A1A1A] text-white' : 'bg-white text-[#666]'}`}
+                    >
+                      {u}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-center">
+                  <thead>
+                    <tr className="text-[#666]">
+                      <th className="py-2 px-3 font-medium"></th>
+                      <th className="py-2 px-3 font-medium">Size</th>
+                      <th className="py-2 px-3 font-medium">Brand Size</th>
+                      {chart.columns.map(c => (
+                        <th key={c} className="py-2 px-3 font-medium whitespace-nowrap">{c} ({unit})</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleRows.map(row => (
+                      <tr
+                        key={row.size}
+                        onClick={() => onSelect(row.size)}
+                        className="border-t border-[#F0F0F0] cursor-pointer hover:bg-[#FAFAFA]"
+                      >
+                        <td className="py-3 px-3">
+                          <input type="radio" readOnly checked={selectedSize === row.size} className="accent-[#1A1A1A]" />
+                        </td>
+                        <td className="py-3 px-3 font-medium">{row.size}</td>
+                        <td className="py-3 px-3">{row.brandSize}</td>
+                        {row.values.map((v, i) => (
+                          <td key={i} className="py-3 px-3">{toUnit(v)}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {chart.howToMeasure.map(m => (
+                <div key={m.label}>
+                  <p className="text-sm font-semibold mb-1">{m.label}</p>
+                  <p className="text-sm text-[#666] leading-relaxed">{m.text}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="sticky bottom-0 bg-white border-t border-[#E5E5E5] p-4 flex items-center gap-3">
+          <button
+            onClick={onAddToBag}
+            disabled={!!product.sizes?.length && !selectedSize}
+            className="flex-1 flex items-center justify-center gap-2 bg-[#1A1A1A] text-white text-sm font-semibold uppercase tracking-wider py-3.5 hover:bg-[#333] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <ShoppingBag size={16} /> Add to Bag
+          </button>
+          <button
+            onClick={onToggleWishlist}
+            className="flex-1 flex items-center justify-center gap-2 bg-white text-[#1A1A1A] border border-[#1A1A1A] text-sm font-semibold uppercase tracking-wider py-3.5 hover:bg-[#F5F5F5] transition-colors"
+          >
+            <Heart size={16} fill={inWishlist ? 'currentColor' : 'none'} /> {inWishlist ? 'Wishlisted' : 'Wishlist'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Category names in the catalog (Hoodie, Sweatshirt, T-Shirt) are singular;
+// a few (Bottoms, Caps) are already plural, so only pluralize when needed.
+const pluralizeCategory = (category: string) => category.endsWith('s') ? category : `${category}s`;
 
 const TRUST_BADGES = [
   { icon: Check, label: 'Official University Merchandise' },
@@ -157,6 +291,7 @@ export function ProductPage() {
   const [mainImage, setMainImage] = useState(0);
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
   const [zoomOpen, setZoomOpen] = useState(false);
+  const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const [reviews, setReviews] = useState<BackendReview[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -191,16 +326,16 @@ export function ProductPage() {
     setShareOpen(false);
   };
 
+  const completeCollection = product
+    ? allProducts.filter(p => p.id !== product.id && p.institution && p.institution === product.institution).slice(0, 8)
+    : [];
+
   const handleShareInstagram = () => {
     navigator.clipboard.writeText(window.location.href);
     showToast('Link copied — paste it on Instagram');
     window.open('https://www.instagram.com/', '_blank');
     setShareOpen(false);
   };
-
-  const completeCollection = product
-    ? allProducts.filter(p => p.id !== product.id && p.institution && p.institution === product.institution).slice(0, 8)
-    : [];
 
   // Breadcrumb labels derived from real product data.
   const topLevelLabel = product?.isAccessory ? 'Accessories' : 'Clothing';
@@ -544,7 +679,7 @@ export function ProductPage() {
               <div className="mb-5">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-medium">Size: {selectedSize || 'Select a size'}</p>
-                  <button className="text-xs underline text-[#666] flex items-center gap-1"><HelpCircle size={12} /> Size guide</button>
+                  <button onClick={() => setSizeGuideOpen(true)} className="text-xs underline text-[#666] flex items-center gap-1"><HelpCircle size={12} /> Size guide</button>
                 </div>
                 <div className="flex items-center gap-2">
                   {product.sizes.map(s => (
@@ -681,15 +816,33 @@ export function ProductPage() {
         )}
       </div>
 
-      {/* Complete the Collection */}
+      {/* Visit Store */}
       <div className="pt-12">
-        <CollectionRow title="Complete the Collection" products={completeCollection} />
+        <CollectionRow title={`Visit ${product.institution} Store`} products={completeCollection} />
       </div>
 
       {/* Other Similar Products */}
       <div className="pt-12">
-        <CollectionRow title="Other Similar Products" products={similarProducts} />
+        <CollectionRow title={`${pluralizeCategory(product.category)} From Other Universities`} products={similarProducts} />
       </div>
+
+      {/* Size Guide */}
+      {sizeGuideOpen && (
+        <SizeGuideDrawer
+          product={product}
+          image={displayImages[mainImage] ?? displayImages[0]}
+          selectedSize={selectedSize}
+          onSelect={setSelectedSize}
+          onClose={() => setSizeGuideOpen(false)}
+          inWishlist={inWishlist}
+          onToggleWishlist={() => {
+            const color = product.colors?.length ? (selectedColor || null) : null;
+            if (inWishlist) removeFromWishlist(product.id, color);
+            else addToWishlist(product, color);
+          }}
+          onAddToBag={handleAddToCart}
+        />
+      )}
 
       {/* Zoom Modal */}
       {zoomOpen && (

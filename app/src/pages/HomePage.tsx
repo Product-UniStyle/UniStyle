@@ -5,6 +5,7 @@ import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { showToast } from '@/components/ToastContainer';
 import type { Product } from '@/data/products';
+import { universityLogos } from '@/data/institutions';
 
 function HeroSection() {
   return (
@@ -14,15 +15,23 @@ function HeroSection() {
       </div>
       <div className="relative z-10 h-full flex items-center max-w-[1440px] mx-auto px-6 lg:px-12">
         <div className="max-w-[600px]">
-          <h1 className="font-playfair text-5xl md:text-6xl lg:text-7xl font-normal leading-[1.05] text-[#1B2A6B] mb-8 tracking-widest">
-            WEAR<br />YOUR<br />JOURNEY!
+          <h1
+            aria-label="Drip for the Degree"
+            className="mb-8 flex items-end whitespace-nowrap font-normal text-[#031126]"
+            style={{ fontFamily: '"Times New Roman", Times, serif', fontSize: 'clamp(8px, 1vw, 16px)' }}
+          >
+            <span aria-hidden="true" className="text-[19em] leading-[0.75] tracking-[-0.065em]">D</span>
+            <span aria-hidden="true" className="flex flex-col">
+              <span className="pl-[0.2em] text-[4em] leading-[1.2] tracking-[-0.045em]">rip for the</span>
+              <span className="text-[10em] leading-[0.85] tracking-[-0.055em]">egree</span>
+            </span>
           </h1>
-          <Link
+          {/* <Link
             to="/shop"
             className="font-playfair inline-block bg-[#1B2A6B] text-white text-sm font-normal tracking-widest uppercase px-8 py-4 hover:bg-[#162050] transition-colors"
           >
             Shop Collection
-          </Link>
+          </Link> */}
         </div>
       </div>
     </section>
@@ -204,14 +213,7 @@ function BestSellersSection() {
   );
 }
 
-const universities = [
-  { name: 'University of Birmingham', logo: '/University-of-Birmingham.jpeg' },
-  { name: 'Middlesex University', logo: '/Middlesex-University.jpeg' },
-  { name: 'Heriot-Watt University', logo: '/Heriot-Watt-University.jpeg' },
-  { name: 'University of Wollongong', logo: '/University-of-Wollongong.jpeg' },
-  { name: 'New York University', logo: '/New-York-University.jpeg' },
-  { name: 'De Montfort University', logo: '/De-Montfort-University.jpeg' },
-];
+const universities = universityLogos;
 
 function UniversitiesSection() {
   const [selectedType, setSelectedType] = useState<'university' | 'school'>('university');

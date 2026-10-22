@@ -203,7 +203,7 @@ function BestSellersSection() {
       <div className="max-w-[1440px] mx-auto px-6 lg:px-12">
         <div className="relative inline-block w-full text-center mb-24">
           <h2 className="font-playfair text-5xl md:text-6xl lg:text-7xl font-normal tracking-widest text-[#1B2A6B] relative z-10">BEST SELLERS</h2>
-          <img src="/highlight.png" alt="" className="absolute left-[49%] -translate-x-1/2 bottom-0 translate-y-[53%] scale-y-50 w-[77%] object-contain pointer-events-none" />
+          <img src="/highlight.png" alt="" className="absolute left-[49%] -translate-x-1/2 bottom-0 translate-y-[53%] scale-y-[0.3] w-[77%] object-contain pointer-events-none" />
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-6 lg:gap-8">
           {bestSellers.map(p => <ProductTile key={p.id} product={p} />)}

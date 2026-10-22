@@ -22,7 +22,7 @@ function HeroSection() {
           >
             <span aria-hidden="true" className="text-[19em] leading-[0.75] tracking-[-0.065em]">D</span>
             <span aria-hidden="true" className="flex flex-col">
-              <span className="pl-[0.1em] text-[4em] leading-[1.2] tracking-[-0.045em] [word-spacing:-0.1em]">rip for the</span>
+              <span className="relative top-[0.55em] pl-[0.2em] text-[4em] leading-[1.2] tracking-[-0.045em] [word-spacing:-0.1em]">rip for the</span>
               <span className="text-[10em] leading-[0.85] tracking-[-0.055em]">egree</span>
             </span>
           </h1>

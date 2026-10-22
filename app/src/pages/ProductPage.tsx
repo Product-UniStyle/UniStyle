@@ -488,9 +488,9 @@ export function ProductPage() {
       <div className="max-w-[1440px] mx-auto px-6 lg:px-12 pb-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Images */}
-          <div>
-            <div className="relative bg-[#E5E2E1] overflow-hidden mb-4 cursor-zoom-in max-h-[55vh] lg:max-h-[60vh]" onClick={() => setZoomOpen(true)}>
-              <img src={displayImages[mainImage]} alt={product.name} className="w-full h-[55vh] lg:h-[60vh] object-contain p-6" />
+          <div className="grid grid-cols-[48px_minmax(0,1fr)] sm:grid-cols-[64px_minmax(0,1fr)] items-start lg:items-stretch gap-3">
+            <div className="relative bg-[#E5E2E1] overflow-hidden cursor-zoom-in max-h-[55vh] lg:max-h-none lg:min-h-[60vh]" onClick={() => setZoomOpen(true)}>
+              <img src={displayImages[mainImage]} alt={product.name} className="w-full h-[55vh] lg:absolute lg:inset-0 lg:h-full object-contain p-6" />
               {product.badge && (
                 <span className="absolute top-4 right-4 bg-[#1A1A1A] text-white text-xs font-medium px-3 py-1.5">{product.badge}</span>
               )}
@@ -522,21 +522,23 @@ export function ProductPage() {
                 </>
               )}
             </div>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="order-first self-start flex flex-col gap-2 max-h-[55vh] lg:max-h-[60vh] overflow-y-auto">
               {displayImages.map((img, i) => (
                 <button
                   key={i}
                   onClick={() => setMainImage(i)}
-                  className={`bg-[#F5F5F5] border-2 overflow-hidden ${mainImage === i ? 'border-[#1A1A1A]' : 'border-transparent'}`}
+                  aria-label={`View product image ${i + 1}`}
+                  aria-pressed={mainImage === i}
+                  className={`shrink-0 bg-[#F5F5F5] border-2 rounded-md overflow-hidden ${mainImage === i ? 'border-[#1A1A1A]' : 'border-transparent'}`}
                 >
-                  <img src={img} alt="" className="w-full aspect-square object-cover" />
+                  <img src={img} alt="" className="w-full aspect-[3/4] object-contain" />
                 </button>
               ))}
             </div>
           </div>
 
           {/* Info */}
-          <div className="product-info-col">
+          <div className="product-info-col flex flex-col lg:min-h-[60vh]">
             <div className="mb-3">
               <h1 className="font-playfair text-2xl md:text-3xl font-bold tracking-normal">{product.name}</h1>
             </div>
@@ -627,6 +629,7 @@ export function ProductPage() {
 
             <p className="text-sm text-[#666] leading-relaxed mb-4">{product.description}</p>
 
+            <div className="mt-auto pt-4">
             {/* Stock */}
             <div className="flex items-center gap-2 mb-4">
               <Check size={16} className="text-green-600" />
@@ -696,9 +699,10 @@ export function ProductPage() {
             )}
 
             {/* Add to Bag */}
+            <div className="grid grid-cols-2 gap-3">
             <button
               onClick={isInBag ? () => navigate('/cart') : handleAddToCart}
-              className="w-full flex items-center justify-center gap-2 bg-[#1A1A1A] text-white text-sm font-semibold uppercase tracking-wider py-3.5 hover:bg-[#333] transition-colors mb-3"
+              className="w-full flex items-center justify-center gap-2 bg-[#1A1A1A] text-white text-sm font-semibold uppercase tracking-wider py-3.5 hover:bg-[#333] transition-colors"
             >
               {isInBag ? <>Go to Bag <ArrowRight size={16} /></> : <><ShoppingBag size={16} /> Add to Bag</>}
             </button>
@@ -706,10 +710,12 @@ export function ProductPage() {
             {/* Buy Now */}
             <button
               onClick={handleBuyNow}
-              className="w-full bg-white text-[#1A1A1A] border border-[#1A1A1A] text-sm font-semibold uppercase tracking-wider py-3.5 hover:bg-[#1A1A1A] hover:text-white transition-colors mb-6"
+              className="w-full bg-white text-[#1A1A1A] border border-[#1A1A1A] text-sm font-semibold uppercase tracking-wider py-3.5 hover:bg-[#1A1A1A] hover:text-white transition-colors"
             >
               Buy Now
             </button>
+            </div>
+            </div>
           </div>
         </div>
 

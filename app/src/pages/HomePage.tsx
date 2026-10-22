@@ -249,12 +249,12 @@ function UniversitiesSection() {
               <Link
                 key={u.name}
                 to={`/shop?institution=${encodeURIComponent(u.name)}`}
-                className="group bg-[#F0EDE8] aspect-square flex items-center justify-center p-6 hover:bg-white transition-colors"
+                className="group bg-[#F0EDE8] aspect-[4/3] flex items-center justify-center p-6 hover:bg-white transition-colors"
               >
                 <img
                   src={u.logo}
                   alt={u.name}
-                  className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                  className="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-transform duration-300"
                 />
               </Link>
             ))}
@@ -268,7 +268,7 @@ function UniversitiesSection() {
                 <Link
                   key={name}
                   to={`/shop?institution=${encodeURIComponent(name)}`}
-                  className="group bg-[#F0EDE8] aspect-square flex items-center justify-center p-6 text-center hover:bg-white transition-colors"
+                  className="group bg-[#F0EDE8] aspect-[4/3] flex items-center justify-center p-6 text-center hover:bg-white transition-colors"
                 >
                   <span className="font-playfair text-lg text-[#1B2A6B] group-hover:scale-105 transition-transform duration-300">{name}</span>
                 </Link>

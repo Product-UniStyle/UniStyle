@@ -43,3 +43,28 @@ export async function sendStaffCredentials({ to, firstName, role, password, pane
     `,
   });
 }
+
+export async function sendDeliveryOtp({ to, firstName, otp, orderId }) {
+  const transporter = createTransport();
+  const name = firstName || 'there';
+
+  await transporter.sendMail({
+    from: `"UniStyle" <${process.env.EMAIL_USER}>`,
+    to,
+    subject: `Your delivery verification code for order #${orderId.slice(-6).toUpperCase()}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#1a1a1a">
+        <h2 style="margin-bottom:4px">Hi ${name},</h2>
+        <p style="color:#666;margin-top:0">Share this code with the delivery staff to confirm you received order #${orderId.slice(-6).toUpperCase()}.</p>
+
+        <div style="background:#f5f5f5;border-radius:6px;padding:20px;margin:24px 0;text-align:center">
+          <span style="font-size:28px;font-weight:bold;letter-spacing:6px">${otp}</span>
+        </div>
+
+        <p style="color:#999;font-size:12px;margin-top:24px">
+          This code expires in 10 minutes. Never share it with anyone except the delivery staff in front of you.
+        </p>
+      </div>
+    `,
+  });
+}

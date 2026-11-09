@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
-import { Plus, Pencil, Trash2, Upload, Download, LogOut, Search, Star, Users, Package } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Download, LogOut, Search, Star, Users, Package, Boxes, Truck, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -15,17 +15,56 @@ import {
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table';
+import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { api, ApiError, getAdminToken, setAdminToken, getAdminRole, type BackendProduct, type AdminProductInput } from '@/lib/api';
 import { AdminProductForm } from './AdminProductForm';
 import { AdminCsvUpload } from './AdminCsvUpload';
 import { AdminUsersTab } from './AdminUsersTab';
+import { AdminInventoryTab } from './AdminInventoryTab';
+import { AdminDeliveryTab } from './AdminDeliveryTab';
 
-type Tab = 'products' | 'users';
+type Tab = 'products' | 'inventory' | 'delivery' | 'users';
+
+const NAV_ITEMS: { id: Tab; label: string; icon: typeof Package; adminOnly?: boolean }[] = [
+  { id: 'products', label: 'Products', icon: Package },
+  { id: 'inventory', label: 'Inventory', icon: Boxes },
+  { id: 'delivery', label: 'Delivery', icon: Truck },
+  { id: 'users', label: 'Users', icon: Users, adminOnly: true },
+];
+
+function AdminNavList({
+  items, activeTab, onSelect, lowStockCount,
+}: {
+  items: typeof NAV_ITEMS;
+  activeTab: Tab;
+  onSelect: (id: Tab) => void;
+  lowStockCount: number;
+}) {
+  return (
+    <>
+      {items.map((item) => (
+        <button
+          key={item.id}
+          onClick={() => onSelect(item.id)}
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded text-sm font-medium transition-colors ${
+            activeTab === item.id ? 'bg-[#1A1A1A] text-white' : 'text-[#666] hover:bg-[#F5F5F5] hover:text-[#1A1A1A]'
+          }`}
+        >
+          <item.icon className="size-4" /> {item.label}
+          {item.id === 'inventory' && lowStockCount > 0 && (
+            <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{lowStockCount}</span>
+          )}
+        </button>
+      ))}
+    </>
+  );
+}
 
 export function AdminPage() {
   const navigate = useNavigate();
   const role = getAdminRole();
   const [tab, setTab] = useState<Tab>('products');
+  const [navOpen, setNavOpen] = useState(false);
 
   const [products, setProducts] = useState<BackendProduct[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -112,6 +151,7 @@ export function AdminPage() {
   };
 
   const featuredCount = products.filter((p) => p.featured).length;
+  const lowStockCount = products.filter((p) => p.stock <= 5).length;
 
   const handleSave = async (data: AdminProductInput) => {
     if (editing) {
@@ -163,45 +203,51 @@ export function AdminPage() {
     XLSX.writeFile(workbook, `unistyle-products-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
+  const visibleNavItems = NAV_ITEMS.filter((item) => !item.adminOnly || role === 'admin');
+
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
-      <header className="border-b border-[#E5E5E5] bg-white">
-        <div className="max-w-[1280px] mx-auto px-4 md:px-6 py-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-6">
-            <h1 className="text-xl font-bold tracking-tight text-[#1A1A1A]">UniStyle Admin</h1>
-            <nav className="flex gap-1">
-              <button
-                onClick={() => setTab('products')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-                  tab === 'products' ? 'bg-[#1A1A1A] text-white' : 'text-[#666] hover:text-[#1A1A1A]'
-                }`}
-              >
-                <Package className="size-4" /> Products
-              </button>
-              {role === 'admin' && (
-                <button
-                  onClick={() => setTab('users')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-                    tab === 'users' ? 'bg-[#1A1A1A] text-white' : 'text-[#666] hover:text-[#1A1A1A]'
-                  }`}
-                >
-                  <Users className="size-4" /> Users
-                </button>
-              )}
-            </nav>
+      <header className="sticky top-0 z-30 border-b border-[#E5E5E5] bg-white/95 backdrop-blur">
+        <div className="px-4 md:px-6 py-4 flex items-center gap-4">
+          <button className="text-[#1A1A1A] hover:opacity-75 transition-opacity" onClick={() => setNavOpen(true)} aria-label="Open menu">
+            <Menu className="size-6" />
+          </button>
+          <h1 className="text-xl font-bold tracking-tight text-[#1A1A1A]">UniStyle Admin</h1>
+        </div>
+      </header>
+
+      <Drawer open={navOpen} onOpenChange={setNavOpen} direction="left">
+        <DrawerContent className="w-72 sm:w-80 h-full flex flex-col">
+          <div className="flex items-center justify-between p-4 border-b border-[#E5E5E5]">
+            <h2 className="text-lg font-bold tracking-tight text-[#1A1A1A]">UniStyle Admin</h2>
+            <button onClick={() => setNavOpen(false)} aria-label="Close menu" className="text-[#666] hover:text-[#1A1A1A]">
+              <X className="size-5" />
+            </button>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-[#999] hidden sm:block capitalize">{role}</span>
+          <nav className="flex-1 overflow-y-auto p-2 space-y-0.5">
+            <AdminNavList
+              items={visibleNavItems}
+              activeTab={tab}
+              onSelect={(id) => { setTab(id); setNavOpen(false); }}
+              lowStockCount={lowStockCount}
+            />
+          </nav>
+          <div className="p-4 border-t border-[#E5E5E5] flex items-center justify-between gap-3">
+            <span className="text-xs font-medium text-[#666] capitalize bg-[#F5F5F5] px-2.5 py-1 rounded-full">{role}</span>
             <Button variant="outline" size="sm" onClick={handleLogout}>
               <LogOut className="size-4 mr-1.5" /> Log out
             </Button>
           </div>
-        </div>
-      </header>
+        </DrawerContent>
+      </Drawer>
 
       <main className="max-w-[1280px] mx-auto px-4 md:px-6 py-8">
         {tab === 'users' && role === 'admin' ? (
           <AdminUsersTab />
+        ) : tab === 'inventory' ? (
+          <AdminInventoryTab />
+        ) : tab === 'delivery' ? (
+          <AdminDeliveryTab />
         ) : (
           <>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -242,7 +288,67 @@ export function AdminPage() {
               </p>
             )}
 
-            <div className="bg-white border border-[#E5E5E5] rounded-lg overflow-hidden">
+            {/* Mobile cards */}
+            <div className="block md:hidden">
+              {loading ? (
+                <p className="text-center py-10 text-[#999]">Loading...</p>
+              ) : products.length === 0 ? (
+                <p className="text-center py-10 text-[#999]">No products found</p>
+              ) : (
+                <div className="space-y-3">
+                  {pagedProducts.map((p) => (
+                    <div key={p._id} className="bg-white border border-[#E5E5E5] rounded-lg p-4 space-y-3">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={p.images[0] ?? p.colors?.find(c => c.images?.length)?.images?.[0]}
+                          alt=""
+                          className="w-12 h-12 object-cover rounded bg-[#F5F5F5] shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <p className="font-medium text-[#1A1A1A] truncate">{p.name}</p>
+                          <p className="text-xs text-[#666]">{p.category}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span>
+                          {p.compareAt ? (
+                            <span className="flex items-center gap-1.5">
+                              <span>AED {(p.price / 100).toFixed(2)}</span>
+                              <span className="text-[#999] line-through text-xs">AED {(p.compareAt / 100).toFixed(2)}</span>
+                            </span>
+                          ) : (
+                            `AED ${(p.price / 100).toFixed(2)}`
+                          )}
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <span className="text-[#666]">Stock: {p.stock}</span>
+                          {p.stock > 0 ? <Badge variant="secondary">In stock</Badge> : <Badge variant="destructive">Out of stock</Badge>}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 pt-1">
+                        <Button variant="secondary" className="flex-1" onClick={() => openEdit(p)}>
+                          <Pencil className="size-4 mr-1.5" /> Edit
+                        </Button>
+                        <Button variant="outline" className="flex-1" onClick={() => setDeleting(p)}>
+                          <Trash2 className="size-4 mr-1.5 text-red-600" /> Delete
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => toggleFeatured(p)}
+                          title={p.featured ? 'Remove from Featured' : 'Mark as Featured'}
+                        >
+                          <Star className={`size-4 ${p.featured ? 'fill-amber-400 text-amber-500' : 'text-[#999]'}`} />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block bg-white border border-[#E5E5E5] rounded-lg overflow-hidden">
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -317,22 +423,23 @@ export function AdminPage() {
                   </TableBody>
                 </Table>
               </div>
-              {!loading && products.length > 0 && (
-                <div className="flex items-center justify-between border-t border-[#E5E5E5] px-4 py-3">
-                  <p className="text-sm text-[#666]">
-                    Page {page} of {totalPages} ({products.length} products)
-                  </p>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                      Previous
-                    </Button>
-                    <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
-                      Next
-                    </Button>
-                  </div>
-                </div>
-              )}
             </div>
+
+            {!loading && products.length > 0 && (
+              <div className="flex items-center justify-between bg-white border border-[#E5E5E5] rounded-lg md:rounded-t-none md:border-t-0 px-4 py-3 mt-0.5 md:mt-0">
+                <p className="text-sm text-[#666]">
+                  Page {page} of {totalPages} ({products.length} products)
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                    Previous
+                  </Button>
+                  <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </main>

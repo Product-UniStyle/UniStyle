@@ -1,10 +1,127 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, ChevronLeft, ChevronRight, Package, PackageSearch } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, Package, PackageSearch, Star } from 'lucide-react';
 import type { Order } from '@/context/AuthContext';
 import { STATUS_STYLES, statusLabel, statusDetailLine, orderBucket, type OrderBucket } from './accountHelpers';
+import { api, ApiError, type BackendReview, type BackendAwaitingReview } from '@/lib/api';
+import { showToast } from '@/components/ToastContainer';
 
 const PAGE_SIZE = 5;
+
+function StarRow({ rating, size = 14 }: { rating: number; size?: number }) {
+  return (
+    <div className="flex">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Star key={i} size={size} fill={i < Math.round(rating) ? '#1A1A1A' : 'none'} stroke="#1A1A1A" />
+      ))}
+    </div>
+  );
+}
+
+function StarPicker({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <div className="flex gap-1">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <button key={i} type="button" onClick={() => onChange(i + 1)}>
+          <Star size={18} fill={i < value ? '#1A1A1A' : 'none'} stroke="#1A1A1A" />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ItemReview({
+  orderId, productId, reviews, awaiting, reload,
+}: {
+  orderId: string;
+  productId: string;
+  reviews: BackendReview[];
+  awaiting: BackendAwaitingReview[];
+  reload: () => void;
+}) {
+  const [writing, setWriting] = useState(false);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const reviewed = reviews.find(r => r.productId?._id === productId);
+  const canReview = awaiting.some(a => a.orderId === orderId && a.product._id === productId);
+
+  const startWrite = () => {
+    setWriting(true);
+    setRating(reviewed?.rating ?? 5);
+    setComment(reviewed?.comment ?? '');
+  };
+
+  const submit = async () => {
+    setSaving(true);
+    try {
+      if (reviewed) {
+        await api.updateReview(reviewed._id, { rating, comment });
+        showToast('Review updated');
+      } else {
+        await api.createReview({ productId, orderId, rating, comment });
+        showToast('Review submitted');
+      }
+      setWriting(false);
+      reload();
+    } catch (err) {
+      showToast(err instanceof ApiError ? err.message : 'Failed to save review', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!reviewed && !canReview) return null;
+
+  if (writing) {
+    return (
+      <div className="mt-2 pt-2 border-t border-[#E5E5E5] space-y-2">
+        <StarPicker value={rating} onChange={setRating} />
+        <textarea value={comment} onChange={e => setComment(e.target.value)} rows={2} placeholder="Share your thoughts about this product..." className="w-full border border-[#E5E5E5] px-3 py-2 text-sm outline-none focus:border-[#1A1A1A]" />
+        <div className="flex gap-2">
+          <button onClick={() => setWriting(false)} className="text-sm text-[#666] px-3 py-1.5">Cancel</button>
+          <button onClick={submit} disabled={saving || !comment.trim()} className="bg-[#1A1A1A] text-white text-xs font-semibold uppercase tracking-[0.08em] px-4 py-2 hover:bg-[#333] disabled:opacity-60">
+            {saving ? 'Saving...' : reviewed ? 'Update Review' : 'Submit Review'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (reviewed) {
+    return (
+      <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-[#F0F0F0]">
+        <span className="flex items-center gap-2">
+          <StarRow rating={reviewed.rating} />
+          <span className="text-xs text-[#999]">(Your rating)</span>
+        </span>
+        <button onClick={startWrite} className="text-xs font-medium text-[#1A1A1A] hover:underline shrink-0">Edit Review</button>
+      </div>
+    );
+  }
+
+  const rateAndOpen = (stars: number) => {
+    setRating(stars);
+    setWriting(true);
+    setComment('');
+  };
+
+  return (
+    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-[#F0F0F0]">
+      <div className="flex gap-1 text-[#CCC]">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <button key={i} type="button" onClick={() => rateAndOpen(i + 1)} className="hover:text-[#1A1A1A]">
+            <Star size={16} />
+          </button>
+        ))}
+      </div>
+      <span onClick={() => rateAndOpen(5)} className="text-xs font-medium text-[#1A1A1A] hover:underline cursor-pointer">
+        Rate & Review Product
+      </span>
+    </div>
+  );
+}
 
 const sortOptions = [
   { label: 'Most Recent', value: 'recent' },
@@ -27,6 +144,16 @@ export function OrdersTab({ orders }: { orders: Order[] }) {
   const [sortOpen, setSortOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [reviews, setReviews] = useState<BackendReview[]>([]);
+  const [awaiting, setAwaiting] = useState<BackendAwaitingReview[]>([]);
+
+  const loadReviews = () => {
+    api.getMyReviews()
+      .then(data => { setReviews(data.reviews); setAwaiting(data.awaiting); })
+      .catch(() => { setReviews([]); setAwaiting([]); });
+  };
+
+  useEffect(() => { loadReviews(); }, []);
 
   const counts = useMemo(() => {
     const c: Record<'all' | OrderBucket, number> = { all: orders.length, processing: 0, shipped: 0, delivered: 0, cancelled: 0 };
@@ -136,17 +263,29 @@ export function OrdersTab({ orders }: { orders: Order[] }) {
                     <ChevronRight size={16} className={`text-[#999] ml-auto mt-2 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
                   </div>
                 </button>
+                {orderBucket(order) === 'delivered' && (
+                  <div className="px-5 pb-4 -mt-1 space-y-2">
+                    {order.items.map((item, i) => (
+                      <div key={i}>
+                        {order.items.length > 1 && <p className="text-xs text-[#999] mb-1 truncate">{item.name}</p>}
+                        <ItemReview orderId={order.id} productId={item.productId} reviews={reviews} awaiting={awaiting} reload={loadReviews} />
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {isOpen && (
                   <div className="px-5 pb-5">
-                    <div className="bg-[#FAFAFA] p-4 space-y-2">
+                    <div className="bg-[#FAFAFA] p-4 space-y-3">
                       {order.items.map((item, i) => (
-                        <div key={i} className="flex items-center gap-3">
-                          <img src={item.image} alt={item.name} className="w-12 h-12 object-cover bg-white" />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">{item.name}</p>
-                            <p className="text-xs text-[#999]">Qty: {item.quantity}</p>
+                        <div key={i}>
+                          <div className="flex items-center gap-3">
+                            <img src={item.image} alt={item.name} className="w-12 h-12 object-cover bg-white" />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{item.name}</p>
+                              <p className="text-xs text-[#999]">Qty: {item.quantity}</p>
+                            </div>
+                            <p className="text-sm font-medium">AED {(item.price * item.quantity).toFixed(2)}</p>
                           </div>
-                          <p className="text-sm font-medium">AED {(item.price * item.quantity).toFixed(2)}</p>
                         </div>
                       ))}
                       <div className="flex justify-between pt-2 border-t border-[#E5E5E5]">

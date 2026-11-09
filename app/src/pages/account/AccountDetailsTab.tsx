@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pencil, Trash2, AlertTriangle } from 'lucide-react';
+import { Pencil } from 'lucide-react';
 import type { User } from '@/context/AuthContext';
 import type { BackendUserPreferences } from '@/lib/api';
 import { showToast } from '@/components/ToastContainer';
@@ -7,7 +7,6 @@ import { showToast } from '@/components/ToastContainer';
 interface Props {
   user: User;
   updateProfile: (data: Partial<Omit<User, 'preferences'>> & { preferences?: Partial<BackendUserPreferences> }) => Promise<void>;
-  deleteAccount: () => Promise<void>;
 }
 
 const GENDER_OPTIONS = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
@@ -17,7 +16,7 @@ function toDateInputValue(iso?: string) {
   return new Date(iso).toISOString().slice(0, 10);
 }
 
-export function AccountDetailsTab({ user, updateProfile, deleteAccount }: Props) {
+export function AccountDetailsTab({ user, updateProfile }: Props) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
@@ -28,9 +27,6 @@ export function AccountDetailsTab({ user, updateProfile, deleteAccount }: Props)
     gender: user.gender || '',
     nationality: user.nationality || '',
   });
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
   const startEdit = () => {
     setForm({
       fullName: `${user.firstName} ${user.lastName}`.trim(),
@@ -67,16 +63,6 @@ export function AccountDetailsTab({ user, updateProfile, deleteAccount }: Props)
   const togglePreference = async (key: 'emailNotifications' | 'smsNotifications', value: boolean) => {
     const preferences: Partial<BackendUserPreferences> = { [key]: value };
     await updateProfile({ preferences });
-  };
-
-  const handleDelete = async () => {
-    setDeleting(true);
-    try {
-      await deleteAccount();
-      showToast('Account deleted');
-    } finally {
-      setDeleting(false);
-    }
   };
 
   const prefs = user.preferences;
@@ -171,28 +157,6 @@ export function AccountDetailsTab({ user, updateProfile, deleteAccount }: Props)
             <p className="text-xs text-[#666]">Choose your preferred currency.</p>
           </div>
           <span className="text-sm text-[#666]">{prefs?.currency || 'GBP'}</span>
-        </div>
-      </div>
-
-      <div className="border border-red-200 p-6">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <p className="text-sm font-semibold text-[#1A1A1A]">Delete Account</p>
-            <p className="text-xs text-[#666]">Permanently delete your account and all of your data.</p>
-          </div>
-          {!confirmingDelete ? (
-            <button onClick={() => setConfirmingDelete(true)} className="flex items-center gap-2 text-sm font-medium text-[#DC2626] border border-[#DC2626] px-4 py-2 hover:bg-red-50 transition-colors">
-              <Trash2 size={14} /> Delete Account
-            </button>
-          ) : (
-            <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1 text-xs text-[#DC2626]"><AlertTriangle size={14} /> This cannot be undone</span>
-              <button onClick={() => setConfirmingDelete(false)} className="text-sm text-[#666] px-3 py-2">Cancel</button>
-              <button onClick={handleDelete} disabled={deleting} className="text-sm font-medium text-white bg-[#DC2626] px-4 py-2 hover:bg-red-700 transition-colors disabled:opacity-60">
-                {deleting ? 'Deleting...' : 'Confirm Delete'}
-              </button>
-            </div>
-          )}
         </div>
       </div>
     </div>

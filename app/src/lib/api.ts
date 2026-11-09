@@ -218,6 +218,41 @@ export const api = {
       body: form,
     });
   },
+
+  adjustStock: (data: { productId: string; change: number; reason?: string }) =>
+    adminRequest<{ product: BackendProduct; log: BackendStockLog }>('/admin/inventory/adjust', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  getStockLogs: (params: { page?: number; limit?: number; productId?: string } = {}) => {
+    const query = new URLSearchParams();
+    if (params.page) query.set('page', String(params.page));
+    if (params.limit) query.set('limit', String(params.limit));
+    if (params.productId) query.set('productId', params.productId);
+    const qs = query.toString();
+    return adminRequest<{ logs: BackendStockLog[]; total: number; page: number; limit: number }>(
+      `/admin/inventory/logs${qs ? `?${qs}` : ''}`
+    );
+  },
+
+  getAdminOrders: (status?: string) =>
+    adminRequest<{ orders: BackendAdminOrder[] }>(`/admin/orders${status ? `?status=${status}` : ''}`),
+
+  updateOrderDeliveryStatus: (id: string, status: BackendOrder['status']) =>
+    adminRequest<{ order: BackendAdminOrder }>(`/admin/orders/${id}/delivery-status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
+
+  sendDeliveryOtp: (id: string) =>
+    adminRequest<{ sent: boolean }>(`/admin/orders/${id}/send-delivery-otp`, { method: 'POST' }),
+
+  verifyDeliveryOtp: (id: string, otp: string) =>
+    adminRequest<{ order: BackendAdminOrder }>(`/admin/orders/${id}/verify-delivery-otp`, {
+      method: 'POST',
+      body: JSON.stringify({ otp }),
+    }),
 };
 
 // ---- Backend response shapes ----
@@ -307,7 +342,8 @@ export interface BackendWishlistItem {
 }
 
 export interface BackendOrderItem {
-  productId: BackendProduct;
+  // null when the product this order line referenced was later deleted.
+  productId: BackendProduct | null;
   quantity: number;
   size?: string;
   color?: string;
@@ -324,10 +360,30 @@ export interface BackendOrder {
   updatedAt: string;
 }
 
+export interface BackendAdminOrder extends Omit<BackendOrder, 'status'> {
+  status: 'PENDING' | 'PAID' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+  // Populated from Order.userId — null when that user account was deleted after the order was placed.
+  userId: { _id: string; firstName?: string; lastName?: string; email: string; phone?: string } | null;
+  deliveryVerifiedAt?: string;
+}
+
+export interface BackendStockLog {
+  _id: string;
+  productId: string;
+  productName: string;
+  change: number;
+  previousStock: number;
+  newStock: number;
+  reason: string;
+  updatedBy: string;
+  createdAt: string;
+}
+
 export interface BackendReview {
   _id: string;
   userId: string;
-  productId: BackendProduct;
+  // null when the reviewed product was later deleted.
+  productId: BackendProduct | null;
   orderId: string;
   rating: number;
   comment: string;

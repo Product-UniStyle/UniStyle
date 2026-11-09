@@ -3,8 +3,11 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import StaffUser from '../models/StaffUser.js';
+import Product from '../models/Product.js';
+import StockLog from '../models/StockLog.js';
+import Order from '../models/Order.js';
 import { requireAdmin, requireEditorOrAdmin } from '../middleware/auth.js';
-import { sendStaffCredentials } from '../lib/mailer.js';
+import { sendStaffCredentials, sendDeliveryOtp } from '../lib/mailer.js';
 import { createPresignedUploadUrl } from '../lib/s3.js';
 
 const router = Router();
@@ -24,6 +27,20 @@ const createUserSchema = z.object({
 
 const updateRoleSchema = z.object({
   role: z.enum(['admin', 'editor', 'customer']),
+});
+
+const adjustStockSchema = z.object({
+  productId: z.string().min(1),
+  change: z.number().int().refine((n) => n !== 0, 'Change cannot be zero'),
+  reason: z.string().optional(),
+});
+
+const deliveryStatusSchema = z.object({
+  status: z.enum(['PENDING', 'PAID', 'SHIPPED', 'DELIVERED', 'CANCELLED']),
+});
+
+const verifyOtpSchema = z.object({
+  otp: z.string().length(6),
 });
 
 // POST /api/admin/login
@@ -149,6 +166,176 @@ router.delete('/users/:id', requireAdmin, async (req, res, next) => {
     if (!user) return res.status(404).json({ error: 'Staff user not found' });
 
     res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/admin/inventory/adjust — restock or correct a product's stock, logged (editor or admin)
+router.post('/inventory/adjust', requireEditorOrAdmin, async (req, res, next) => {
+  try {
+    const { productId, change, reason } = adjustStockSchema.parse(req.body);
+
+    const product = await Product.findById(productId);
+    if (!product) return res.status(404).json({ error: 'Product not found' });
+
+    const previousStock = product.stock;
+    const newStock = previousStock + change;
+    if (newStock < 0) {
+      return res.status(400).json({ error: 'Stock cannot go below 0' });
+    }
+
+    // shortcut: read-then-write isn't atomic, so two staff adjusting the same
+    // product at once could race. Fine for a single-operator admin panel;
+    // move to a transaction if concurrent stock edits become common.
+    product.stock = newStock;
+    await product.save();
+
+    const log = await StockLog.create({
+      productId: product._id,
+      productName: product.name,
+      change,
+      previousStock,
+      newStock,
+      reason: reason || '',
+      updatedBy: req.adminUser.email,
+    });
+
+    res.json({ product, log });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/admin/inventory/logs?page=&limit=&productId= — recent stock adjustments, newest first (editor or admin)
+router.get('/inventory/logs', requireEditorOrAdmin, async (req, res, next) => {
+  try {
+    const { page = 1, limit = 20, productId } = req.query;
+    const where = productId ? { productId } : {};
+    const take = Math.min(Number(limit) || 20, 100);
+    const skip = (Math.max(Number(page) || 1, 1) - 1) * take;
+
+    const [logs, total] = await Promise.all([
+      StockLog.find(where).sort({ createdAt: -1 }).skip(skip).limit(take),
+      StockLog.countDocuments(where),
+    ]);
+
+    res.json({ logs, total, page: Number(page), limit: take });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/admin/orders?status= — all store orders with customer + shipping details (editor or admin)
+router.get('/orders', requireEditorOrAdmin, async (req, res, next) => {
+  try {
+    const { status } = req.query;
+    const where = status ? { status: String(status) } : {};
+
+    const orders = await Order.find(where)
+      .populate('userId', 'firstName lastName email phone')
+      .populate('items.productId')
+      .sort({ createdAt: -1 });
+
+    res.json({ orders });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /api/admin/orders/:id/delivery-status — update an order's delivery status (editor or admin)
+router.patch('/orders/:id/delivery-status', requireEditorOrAdmin, async (req, res, next) => {
+  try {
+    const { status } = deliveryStatusSchema.parse(req.body);
+
+    const order = await Order.findByIdAndUpdate(req.params.id, { status }, { new: true })
+      .populate('userId', 'firstName lastName email phone')
+      .populate('items.productId');
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+
+    res.json({ order });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/admin/orders/:id/send-delivery-otp — email a one-time code to the
+// customer so they can verify the delivery in person (editor or admin)
+router.post('/orders/:id/send-delivery-otp', requireEditorOrAdmin, async (req, res, next) => {
+  try {
+    const order = await Order.findById(req.params.id).populate('userId', 'firstName email');
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    if (!order.userId) return res.status(400).json({ error: 'This order has no linked customer account to notify' });
+
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    order.deliveryOtpHash = await bcrypt.hash(otp, 10);
+    order.deliveryOtpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    await order.save();
+
+    await sendDeliveryOtp({
+      to: order.userId.email,
+      firstName: order.userId.firstName,
+      otp,
+      orderId: order._id.toString(),
+    });
+
+    res.json({ sent: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/admin/orders/:id/verify-delivery-otp — confirm the code the customer
+// read out, then mark the order DELIVERED (editor or admin)
+router.post('/orders/:id/verify-delivery-otp', requireEditorOrAdmin, async (req, res, next) => {
+  try {
+    const { otp } = verifyOtpSchema.parse(req.body);
+
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    if (!order.deliveryOtpHash || !order.deliveryOtpExpiresAt) {
+      return res.status(400).json({ error: 'No verification code was sent for this order yet' });
+    }
+    if (order.deliveryOtpExpiresAt < new Date()) {
+      return res.status(400).json({ error: 'Code expired — send a new one' });
+    }
+
+    const valid = await bcrypt.compare(otp, order.deliveryOtpHash);
+    if (!valid) return res.status(400).json({ error: 'Incorrect code' });
+
+    order.status = 'DELIVERED';
+    order.deliveryVerifiedAt = new Date();
+    order.deliveryOtpHash = undefined;
+    order.deliveryOtpExpiresAt = undefined;
+    await order.save();
+
+    // Stock leaves inventory once delivery is confirmed, not at payment — mirrors
+    // the StockLog audit trail used by manual restocks, so it shows in that product's history.
+    for (const item of order.items) {
+      const product = await Product.findById(item.productId);
+      if (!product) continue;
+
+      const previousStock = product.stock;
+      const newStock = Math.max(0, previousStock - item.quantity);
+      product.stock = newStock;
+      await product.save();
+
+      await StockLog.create({
+        productId: product._id,
+        productName: product.name,
+        change: newStock - previousStock,
+        previousStock,
+        newStock,
+        reason: `Order #${order._id.toString().slice(-6).toUpperCase()} delivered`,
+        updatedBy: req.adminUser.email,
+      });
+    }
+
+    const populated = await Order.findById(order._id)
+      .populate('userId', 'firstName lastName email phone')
+      .populate('items.productId');
+
+    res.json({ order: populated });
   } catch (err) {
     next(err);
   }

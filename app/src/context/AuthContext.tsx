@@ -143,9 +143,9 @@ function orderFromBackend(o: BackendOrder): Order {
     deliveredAt: o.status === 'DELIVERED' ? o.updatedAt : undefined,
     status: STATUS_MAP[o.status],
     items: o.items.map(item => ({
-      productId: item.productId._id,
-      name: item.productId.name,
-      image: item.productId.images[0],
+      productId: item.productId?._id ?? '',
+      name: item.productId?.name ?? 'Deleted product',
+      image: item.productId?.images[0] ?? '',
       price: item.price / 100,
       quantity: item.quantity,
     })),

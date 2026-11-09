@@ -34,6 +34,11 @@ const orderSchema = new mongoose.Schema({
   // remove exactly those lines from the cart, leaving items the user didn't select
   // for checkout untouched.
   cartItemIds: { type: [mongoose.Schema.Types.ObjectId], default: [] },
+  // Delivery OTP verification: admin sends a one-time code to the customer,
+  // customer reads it out, admin enters it to confirm delivery in person.
+  deliveryOtpHash: String,
+  deliveryOtpExpiresAt: Date,
+  deliveryVerifiedAt: Date,
 }, { timestamps: true });
 
 export default mongoose.model('Order', orderSchema);

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
-  Home, Package, Heart, MapPin, CreditCard, User, Shield, Star, LogOut,
-  ChevronRight, Lock, Smartphone, Monitor, Calendar, Mail, Pencil, Eye, EyeOff,
+  Home, Package, Heart, MapPin, CreditCard, User, Shield, LogOut,
+  ChevronRight, Lock, Smartphone, Monitor, Calendar, Mail, Pencil, Eye, EyeOff, FileText, Trash2,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useWishlist } from '@/context/WishlistContext';
@@ -14,7 +14,7 @@ import { PaymentMethodsTab } from './account/PaymentMethodsTab';
 import { AccountDetailsTab } from './account/AccountDetailsTab';
 import { ChangePasswordTab } from './account/ChangePasswordTab';
 import { SecurityTab } from './account/SecurityTab';
-import { ReviewsTab } from './account/ReviewsTab';
+import { DeleteAccountTab } from './account/DeleteAccountTab';
 
 export function AccountPage() {
   const {
@@ -33,6 +33,7 @@ export function AccountPage() {
       next.set('tab', tab);
       return next;
     });
+    window.scrollTo({ top: 0, behavior: 'instant' });
   };
   const [formData, setFormData] = useState({
     firstName: '', lastName: '', email: '', password: '',
@@ -46,6 +47,10 @@ export function AccountPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [activeTab]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,16 +187,23 @@ export function AccountPage() {
     );
   }
 
-  const navItems = [
-    { id: 'overview', label: 'Overview', icon: Home },
-    { id: 'orders', label: 'Orders', icon: Package },
-    { id: 'wishlist', label: 'Wishlist', icon: Heart, badge: wishlistTotal },
-    { id: 'addresses', label: 'Addresses', icon: MapPin },
-    { id: 'payment', label: 'Payment Methods', icon: CreditCard },
-    { id: 'account', label: 'Account Details', icon: User },
-    { id: 'password', label: 'Change Password', icon: Lock },
-    { id: 'security', label: 'Security', icon: Shield },
-    { id: 'reviews', label: 'Reviews', icon: Star },
+  const navGroups: { title?: string; items: { id?: string; label: string; icon: typeof Home; badge?: number; href?: string }[] }[] = [
+    { items: [{ id: 'overview', label: 'Overview', icon: Home }] },
+    { title: 'Orders', items: [
+      { id: 'orders', label: 'Orders & Returns', icon: Package },
+    ] },
+    { title: 'Account', items: [
+      { id: 'account', label: 'Account Details', icon: User },
+      { id: 'password', label: 'Change Password', icon: Lock },
+      // { id: 'security', label: 'Security', icon: Shield },
+      { id: 'addresses', label: 'Addresses', icon: MapPin },
+      { id: 'payment', label: 'Payment Methods', icon: CreditCard },
+      { id: 'delete-account', label: 'Delete Account', icon: Trash2 },
+    ] },
+    { title: 'Legal', items: [
+      { label: 'Terms of Use', icon: FileText, href: '/terms-and-conditions' },
+      { label: 'Privacy Policy', icon: FileText, href: '/privacy-policy' },
+    ] },
   ];
 
   const recentOrders = orders.slice(0, 4);
@@ -202,7 +214,7 @@ export function AccountPage() {
       <div className="max-w-[1440px] mx-auto px-6 lg:px-12 py-12">
         <div className="flex flex-col lg:flex-row gap-12">
           {/* Sidebar */}
-          <aside className="w-full lg:w-[260px] shrink-0">
+          <aside className="w-full lg:w-[260px] shrink-0 lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <div className="flex lg:flex-col items-center gap-3 lg:gap-0 lg:text-center mb-4 lg:mb-6">
               <div className="w-12 h-12 lg:w-16 lg:h-16 rounded-full bg-[#F1E7FB] text-[#1A1A1A] flex items-center justify-center font-bold text-lg lg:text-xl shrink-0 lg:mb-3">
                 {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
@@ -212,30 +224,41 @@ export function AccountPage() {
                 <p className="text-xs text-[#999]">{user?.email}</p>
               </div>
             </div>
-            <nav className="flex lg:flex-col overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden gap-0.5 -mx-6 px-3 lg:mx-0 lg:px-0 pb-3 border-b border-[#E5E5E5] lg:border-b-0 lg:pb-0 mb-6 lg:mb-0">
-              {navItems.map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`shrink-0 lg:w-full flex items-center lg:justify-between gap-2 lg:gap-3 px-3 lg:px-4 py-2.5 lg:py-3 text-sm font-medium whitespace-nowrap transition-all ${
-                    activeTab === tab.id ? 'text-[#1A1A1A] bg-[#F5F5F5]' : 'text-[#666] hover:text-[#1A1A1A] hover:bg-[#FAFAFA]'
-                  }`}
-                >
-                  <span className="flex items-center gap-2 lg:gap-3">
-                    <tab.icon size={18} />
-                    {tab.label}
-                  </span>
-                  {!!tab.badge && (
-                    <span className="text-[11px] font-semibold bg-[#1A1A1A] text-white rounded-full px-2 py-0.5">{tab.badge}</span>
+            <nav className="flex lg:flex-col overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden gap-0.5 -mx-6 px-3 lg:mx-0 lg:px-0 pb-3 border-b border-[#E5E5E5] lg:border-b-0 lg:pb-0 mb-6 lg:mb-6">
+              {navGroups.map((group, i) => (
+                <div key={group.title ?? 'root'} className={`shrink-0 lg:shrink lg:w-full flex lg:flex-col lg:gap-0.5 ${i > 0 ? 'lg:mt-5 lg:pt-5 lg:border-t lg:border-[#E5E5E5]' : ''}`}>
+                  {group.title && (
+                    <p className="hidden lg:block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#999] px-4 pb-2">{group.title}</p>
                   )}
-                </button>
+                  {group.items.map(tab => {
+                    const content = (
+                      <>
+                        <span className="flex items-center gap-2 lg:gap-3">
+                          <tab.icon size={18} />
+                          {tab.label}
+                        </span>
+                        {!!tab.badge && (
+                          <span className="text-[11px] font-semibold bg-[#1A1A1A] text-white rounded-full px-2 py-0.5">{tab.badge}</span>
+                        )}
+                      </>
+                    );
+                    const className = `shrink-0 lg:w-full flex items-center lg:justify-between gap-2 lg:gap-3 px-3 lg:px-4 py-2.5 lg:py-3 text-sm font-medium whitespace-nowrap transition-all ${
+                      tab.id && activeTab === tab.id ? 'text-[#1A1A1A] bg-[#F5F5F5]' : 'text-[#666] hover:text-[#1A1A1A] hover:bg-[#FAFAFA]'
+                    }`;
+                    return tab.href ? (
+                      <Link key={tab.label} to={tab.href} className={className}>{content}</Link>
+                    ) : (
+                      <button key={tab.id} onClick={() => setActiveTab(tab.id!)} className={className}>{content}</button>
+                    );
+                  })}
+                </div>
               ))}
               <button
                 onClick={() => {
                   logout();
                   showToast('Signed out');
                 }}
-                className="shrink-0 lg:w-full flex items-center gap-2 lg:gap-3 px-3 lg:px-4 py-2.5 lg:py-3 text-sm font-medium text-[#666] hover:text-[#DC2626] whitespace-nowrap transition-colors"
+                className="shrink-0 lg:w-full flex items-center justify-center gap-2 lg:gap-3 px-3 lg:px-4 py-2.5 lg:py-3 lg:mt-5 text-sm font-semibold text-[#666] hover:text-[#DC2626] whitespace-nowrap transition-colors lg:border lg:border-[#E5E5E5] hover:lg:border-[#DC2626]"
               >
                 <LogOut size={18} />
                 Logout
@@ -263,7 +286,7 @@ export function AccountPage() {
                     <div className="w-10 h-10 rounded-full bg-[#FCE7EF] flex items-center justify-center mb-4"><Heart size={18} /></div>
                     <p className="text-2xl font-bold">{wishlistTotal}</p>
                     <p className="text-xs text-[#666] mt-1">Wishlist Items</p>
-                    <button onClick={() => setActiveTab('wishlist')} className="text-xs font-medium underline mt-3 hover:text-[#1A1A1A]">View wishlist &rarr;</button>
+                    <Link to="/wishlist" className="text-xs font-medium underline mt-3 inline-block hover:text-[#1A1A1A]">View wishlist &rarr;</Link>
                   </div>
                   <div className="border border-[#E5E5E5] p-5">
                     <div className="w-10 h-10 rounded-full bg-[#E5F0FF] flex items-center justify-center mb-4"><MapPin size={18} /></div>
@@ -320,7 +343,7 @@ export function AccountPage() {
                 </div>
 
                 {/* Account Details + Security */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+                {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
                   <div className="border border-[#E5E5E5] p-6">
                     <div className="flex items-center justify-between mb-5">
                       <h3 className="font-bold">Account Details</h3>
@@ -388,16 +411,16 @@ export function AccountPage() {
                       </button>
                     </div>
                   </div>
-                </div>
+                </div> */}
 
                 {/* Wishlist Highlights */}
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-bold">Wishlist Highlights</h3>
                     {wishlistItems.length > 0 && (
-                      <button onClick={() => setActiveTab('wishlist')} className="text-xs font-medium underline flex items-center gap-1 hover:text-[#1A1A1A]">
+                      <Link to="/wishlist" className="text-xs font-medium underline flex items-center gap-1 hover:text-[#1A1A1A]">
                         View Full Wishlist <ChevronRight size={14} />
-                      </button>
+                      </Link>
                     )}
                   </div>
                   {highlightedWishlist.length === 0 ? (
@@ -434,40 +457,6 @@ export function AccountPage() {
 
             {activeTab === 'orders' && <OrdersTab orders={orders} />}
 
-            {activeTab === 'wishlist' && (
-              <div>
-                <h2 className="text-2xl font-bold mb-6">Wishlist</h2>
-                {wishlistItems.length === 0 ? (
-                  <div className="text-center py-12 bg-[#F5F5F5]">
-                    <Heart size={36} className="mx-auto text-[#CCC] mb-4" />
-                    <p className="text-[#666]">Your wishlist is empty</p>
-                    <Link to="/shop" className="text-sm underline mt-2 inline-block">Browse Products</Link>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {wishlistItems.map(({ product, color }) => (
-                      <div key={`${product.id}-${color ?? ''}`} className="group">
-                        <div className="relative bg-[#F5F5F5] mb-2">
-                          <Link to={`/product/${product.slug}`}>
-                            <img src={product.images[0]} alt={product.name} className="w-full aspect-square object-cover" />
-                          </Link>
-                          <button
-                            onClick={() => { removeFromWishlist(product.id, color); showToast('Removed from wishlist'); }}
-                            className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white flex items-center justify-center text-[#1A1A1A]"
-                          >
-                            <Heart size={14} fill="currentColor" />
-                          </button>
-                        </div>
-                        {product.institution && <p className="text-xs text-[#999] truncate">{product.institution}</p>}
-                        <Link to={`/product/${product.slug}`} className="text-sm font-medium hover:underline truncate block">{product.name}</Link>
-                        <p className="text-sm font-semibold mt-0.5">AED {(product.salePrice ?? product.price).toFixed(2)}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
             {activeTab === 'addresses' && user && (
               <AddressesTab
                 addresses={user.addresses}
@@ -480,18 +469,18 @@ export function AccountPage() {
             {activeTab === 'payment' && <PaymentMethodsTab />}
 
             {activeTab === 'account' && user && (
-              <AccountDetailsTab user={user} updateProfile={updateProfile} deleteAccount={deleteAccount} />
+              <AccountDetailsTab user={user} updateProfile={updateProfile} />
             )}
 
             {activeTab === 'password' && (
               <ChangePasswordTab changePassword={changePassword} />
             )}
 
-            {activeTab === 'security' && (
-              <SecurityTab deleteAccount={deleteAccount} />
-            )}
+            {activeTab === 'security' && <SecurityTab />}
 
-            {activeTab === 'reviews' && <ReviewsTab />}
+            {activeTab === 'delete-account' && (
+              <DeleteAccountTab firstName={user?.firstName} deleteAccount={deleteAccount} onCancel={() => setActiveTab('overview')} />
+            )}
           </div>
         </div>
       </div>

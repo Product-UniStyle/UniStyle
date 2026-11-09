@@ -1,25 +1,6 @@
-import { useState } from 'react';
-import { Smartphone, Monitor, ShieldCheck, Trash2, AlertTriangle } from 'lucide-react';
-import { showToast } from '@/components/ToastContainer';
+import { Smartphone, Monitor, ShieldCheck } from 'lucide-react';
 
-interface Props {
-  deleteAccount: () => Promise<void>;
-}
-
-export function SecurityTab({ deleteAccount }: Props) {
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  const handleDelete = async () => {
-    setDeleting(true);
-    try {
-      await deleteAccount();
-      showToast('Account deleted');
-    } finally {
-      setDeleting(false);
-    }
-  };
-
+export function SecurityTab() {
   return (
     <div>
       <h2 className="text-2xl font-bold mb-1">Security</h2>
@@ -45,28 +26,6 @@ export function SecurityTab({ deleteAccount }: Props) {
             </span>
           </span>
           <span className="text-xs font-medium bg-gray-100 text-gray-500 px-3 py-1 rounded-full">Coming soon</span>
-        </div>
-      </div>
-
-      <div className="border border-red-200 p-6 mb-6">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <p className="text-sm font-semibold text-[#1A1A1A]">Delete Account</p>
-            <p className="text-xs text-[#666]">Permanently delete your account and all of your data.</p>
-          </div>
-          {!confirmingDelete ? (
-            <button onClick={() => setConfirmingDelete(true)} className="flex items-center gap-2 text-sm font-medium text-[#DC2626] border border-[#DC2626] px-4 py-2 hover:bg-red-50 transition-colors">
-              <Trash2 size={14} /> Delete Account
-            </button>
-          ) : (
-            <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1 text-xs text-[#DC2626]"><AlertTriangle size={14} /> This cannot be undone</span>
-              <button onClick={() => setConfirmingDelete(false)} className="text-sm text-[#666] px-3 py-2">Cancel</button>
-              <button onClick={handleDelete} disabled={deleting} className="text-sm font-medium text-white bg-[#DC2626] px-4 py-2 hover:bg-red-700 transition-colors disabled:opacity-60">
-                {deleting ? 'Deleting...' : 'Confirm Delete'}
-              </button>
-            </div>
-          )}
         </div>
       </div>
 

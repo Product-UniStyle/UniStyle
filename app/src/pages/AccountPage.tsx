@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
-  Home, Package, Heart, MapPin, CreditCard, User, Shield, LogOut,
-  ChevronRight, Lock, Smartphone, Monitor, Calendar, Mail, Pencil, Eye, EyeOff, FileText, Trash2,
+  Home, Package, Heart, MapPin, CreditCard, User, LogOut,
+  ChevronRight, Lock, Eye, EyeOff, FileText, Trash2,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { showToast } from '@/components/ToastContainer';
-import { STATUS_STYLES, statusLabel, formatDate } from './account/accountHelpers';
+import { STATUS_STYLES, statusLabel } from './account/accountHelpers';
 import { OrdersTab } from './account/OrdersTab';
 import { AddressesTab } from './account/AddressesTab';
 import { PaymentMethodsTab } from './account/PaymentMethodsTab';
